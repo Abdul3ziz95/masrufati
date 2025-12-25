@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ميزانك الذكي - إدارة الأموال والديون</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -71,7 +74,7 @@
                 <p style="font-size: 1.1em; font-weight: bold;">
                     مرحباً! حالة الدخول: <span id="user-status-display">غير مسجل</span>
                 </p> 
-                </div>
+            </div>
             
             <div class="tabs">
                 <button class="tab-button active" data-tab="expenses">المصروفات اليومية</button>
@@ -325,7 +328,6 @@
         }
         
         function signUp() {
-            // ... (كود إنشاء الحساب)
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             authError.textContent = '';
@@ -339,7 +341,6 @@
         }
 
         function signIn() {
-             // ... (كود تسجيل الدخول)
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             authError.textContent = '';
@@ -348,7 +349,6 @@
         }
         
         function signInWithGoogle() {
-            // ... (كود تسجيل الدخول بـ Google)
             authError.textContent = '';
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider)
@@ -439,19 +439,15 @@
                 description: description,
                 currency: currentCurrencySymbol,
                 imageUrl: imageUrl || null, 
-                // نستخدم ISO string للحفظ المحلي فقط
                 timestamp: userId ? null : new Date().toISOString() 
             };
 
             if (userId) {
-                // الحفظ السحابي
                 db.collection("expenses").add({...expenseData, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()})
                 .then(() => { loadExpenses(); alert("تم حفظ المصروف سحابياً بنجاح!"); })
                 .catch((error) => { console.error("خطأ في Firebase: ", error); alert(`فشل في الحفظ السحابي: ${error.message}`); });
             } else {
-                // الحفظ المحلي
                 const data = getLocalData(EXPENSE_KEY);
-                // إضافة معرّف محلي مؤقت
                 data.unshift({...expenseData, id: Date.now().toString()}); 
                 saveLocalData(EXPENSE_KEY, data);
                 loadLocalData();
@@ -555,15 +551,12 @@
             let detailsHtml = '';
             const amountFormatted = formatAmount(data.amount);
             
-            // 💡 تحسين عرض التاريخ (حل مشكلة Invalid Date)
             let dateString = 'غير محدد';
             if (data.timestamp) {
                 try {
                     if (data.timestamp.seconds) {
-                        // Firebase Timestamp
                         dateString = new Date(data.timestamp.seconds * 1000).toLocaleDateString('ar-EG');
                     } else if (typeof data.timestamp === 'string') {
-                        // Local Storage ISO string
                         dateString = new Date(data.timestamp).toLocaleDateString('ar-EG');
                     }
                 } catch(e) {
@@ -621,7 +614,6 @@
         function renderList(key, listElement, type, dataArray = null) {
             listElement.innerHTML = '';
             
-            // استخدام نسخة من البيانات لضمان عدم تداخل التخزين المحلي مع البيانات السحابية
             const dataToRender = dataArray || getLocalData(key).slice(0, 10); 
             
             if (dataToRender.length === 0) {
@@ -633,7 +625,6 @@
                 const item = document.createElement('div');
                 item.className = 'transaction-item ' + (type === 'due' ? 'debt-due' : type === 'owed' ? 'debt-owed' : '');
                 
-                // يجب أن تكون البيانات المعروضة في onclick قابلة للتسلسل (Serialized)
                 const dataString = encodeURIComponent(JSON.stringify(data));
                 item.setAttribute('onclick', `showTransactionDetails(JSON.parse(decodeURIComponent('${dataString}')), '${type}')`);
 
@@ -671,7 +662,6 @@
             renderList(OWED_KEY, document.getElementById('debts-owed-list'), 'owed');
         }
         
-        // دوال تحميل البيانات السحابية (تستخدم onSnapshot للتحديث الفوري)
         function loadExpenses() {
             if (!userId) return;
             db.collection("expenses")
@@ -723,7 +713,19 @@
             });
         });
 
-        // بدء تحميل البيانات (محلياً إذا لم يكن هناك تسجيل دخول)
+        // 🟢 تفعيل الـ PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registered:', registration);
+                })
+                .catch(error => {
+                    console.log('ServiceWorker registration failed:', error);
+                });
+            });
+        }
+
         loadLocalData();
     </script>
 
