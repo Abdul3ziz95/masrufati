@@ -288,3 +288,149 @@
             
             if (!amount || !dueTo || !dueDate) {
                 alert('الرجاء إدخال المبلغ، المدين له، وتاريخ الاستحقاق.');
+                return;
+            }
+
+            db.collection("debts_due").add({
+                userId: userId,
+                amount: amount,
+                dueTo: dueTo,
+                dueDate: dueDate,
+                status: 'قيد السداد',
+                currency: currentCurrencySymbol,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('due-amount').value = '';
+                document.getElementById('due-to').value = '';
+                document.getElementById('due-date').value = '';
+                alert("تم إضافة الدين عليك بنجاح!");
+            });
+        }
+
+        function addDebtOwed() {
+            const amount = parseFloat(document.getElementById('owed-amount').value);
+            const owedBy = document.getElementById('owed-by').value;
+            const owedDate = document.getElementById('owed-date').value;
+            
+            if (!amount || !owedBy || !owedDate) {
+                alert('الرجاء إدخال المبلغ، المستدين منك، وتاريخ السداد المتوقع.');
+                return;
+            }
+
+            db.collection("debts_owed").add({
+                userId: userId,
+                amount: amount,
+                owedBy: owedBy,
+                expectedDate: owedDate,
+                status: 'قيد التحصيل',
+                currency: currentCurrencySymbol,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('owed-amount').value = '';
+                document.getElementById('owed-by').value = '';
+                document.getElementById('owed-date').value = '';
+                alert("تم إضافة الدين لك بنجاح!");
+            });
+        }
+
+        // **********************************************
+        // 7. دوال جلب البيانات وعرضها (Read)
+        // **********************************************
+
+        function loadExpenses() {
+            if (!userId) return;
+
+            db.collection("expenses")
+              .where("userId", "==", userId)
+              .orderBy("timestamp", "desc")
+              .limit(10)
+              .onSnapshot((querySnapshot) => {
+                const list = document.getElementById('expenses-list');
+                list.innerHTML = '';
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleDateString('ar-EG') : 'غير محدد';
+                    const item = document.createElement('div');
+                    item.className = 'transaction-item';
+                    item.innerHTML = `
+                        <div style="font-size: 1.2em; font-weight: bold; color: #dc3545;">
+                            -${formatAmount(data.amount)}
+                        </div>
+                        <div style="font-size: 0.9em; color: #6c757d;">
+                            ${data.category} | ${date}
+                        </div>
+                        <div style="margin-top: 5px;">
+                            ${data.description}
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        function loadDebtsDue() {
+            if (!userId) return;
+
+            db.collection("debts_due")
+              .where("userId", "==", userId)
+              .orderBy("timestamp", "desc")
+              .onSnapshot((querySnapshot) => {
+                const list = document.getElementById('debts-due-list');
+                list.innerHTML = '';
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const item = document.createElement('div');
+                    item.className = 'transaction-item debt-due';
+                    item.innerHTML = `
+                        <div style="font-size: 1.2em; font-weight: bold;">
+                            دين مستحق: ${formatAmount(data.amount)}
+                        </div>
+                        <div style="font-size: 0.9em; color: #6c757d;">
+                            لصالح: ${data.dueTo} | حالة: ${data.status}
+                        </div>
+                        <div style="margin-top: 5px; color: #dc3545;">
+                            تاريخ الاستحقاق: ${data.dueDate}
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        function loadDebtsOwed() {
+            if (!userId) return;
+
+            db.collection("debts_owed")
+              .where("userId", "==", userId)
+              .orderBy("timestamp", "desc")
+              .onSnapshot((querySnapshot) => {
+                const list = document.getElementById('debts-owed-list');
+                list.innerHTML = '';
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const item = document.createElement('div');
+                    item.className = 'transaction-item debt-owed';
+                    item.innerHTML = `
+                        <div style="font-size: 1.2em; font-weight: bold;">
+                            دين لك: ${formatAmount(data.amount)}
+                        </div>
+                        <div style="font-size: 0.9em; color: #6c757d;">
+                            على: ${data.owedBy} | حالة: ${data.status}
+                        </div>
+                        <div style="margin-top: 5px; color: #28a745;">
+                            السداد المتوقع: ${data.expectedDate}
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>
