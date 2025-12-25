@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -129,9 +130,11 @@
                     </div>
             </div>
 
-        </div> </div> <script>
+        </div> </div> 
+        
+    <script>
         // **********************************************
-        // 1. إعدادات Firebase (مفاتيح مشروع 'مصروفاتي' الحقيقية)
+        // 2. إعدادات Firebase (مفاتيح مشروع 'مصروفاتي' الحقيقية)
         // **********************************************
         const firebaseConfig = {
             apiKey: "AIzaSyBENy9kG69uDwR1-oSJqXYFlEyDHuCgZmc",
@@ -142,7 +145,7 @@
             appId: "1:848472873404:web:ffd9ada5fe1d0708f133b9"
         };
 
-        // تهيئة Firebase
+        // تهيئة Firebase بالطريقة القديمة (Compat)
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -152,13 +155,12 @@
         let currentCurrencySymbol = 'SAR';
 
         // **********************************************
-        // 2. دوال إدارة العملة
+        // 3. دوال إدارة العملة
         // **********************************************
 
         function updateCurrencySymbol() {
             const selectElement = document.getElementById('currency-select');
             currentCurrencySymbol = selectElement.value;
-            // يمكن هنا إعادة تحميل القوائم لعرض الرمز الجديد (سنتجاهلها لتبسيط الكود)
             console.log(`تم تغيير العملة إلى: ${currentCurrencySymbol}`);
         }
 
@@ -167,7 +169,7 @@
         }
 
         // **********************************************
-        // 3. دوال المصادقة (التسجيل والدخول/الخروج)
+        // 4. دوال المصادقة (التسجيل والدخول/الخروج)
         // **********************************************
 
         function signUp() {
@@ -197,7 +199,7 @@
                 });
         }
         
-        // دالة الدخول باستخدام Google (التي لم تظهر سابقاً)
+        // دالة الدخول باستخدام Google
         function signInWithGoogle() {
             authError.textContent = '';
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -207,7 +209,6 @@
                     console.log("تم الدخول بنجاح عبر Google");
                 })
                 .catch((error) => {
-                    // إذا ظهر خطأ هنا، فتأكد من تفعيل Google Sign-in في Firebase Console
                     authError.textContent = `خطأ في الدخول بـ Google: ${error.message}`;
                 });
         }
@@ -236,7 +237,7 @@
         });
 
         // **********************************************
-        // 4. دوال تبديل التبويبات (القوائم)
+        // 5. دوال تبديل التبويبات (القوائم)
         // **********************************************
 
         document.querySelectorAll('.tab-button').forEach(button => {
@@ -250,7 +251,7 @@
         });
 
         // **********************************************
-        // 5. دوال إضافة البيانات (Create)
+        // 6. دوال إضافة البيانات (Create)
         // **********************************************
 
         function addExpense() {
@@ -287,150 +288,3 @@
             
             if (!amount || !dueTo || !dueDate) {
                 alert('الرجاء إدخال المبلغ، المدين له، وتاريخ الاستحقاق.');
-                return;
-            }
-
-            db.collection("debts_due").add({
-                userId: userId,
-                amount: amount,
-                dueTo: dueTo,
-                dueDate: dueDate,
-                status: 'قيد السداد',
-                currency: currentCurrencySymbol,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                document.getElementById('due-amount').value = '';
-                document.getElementById('due-to').value = '';
-                document.getElementById('due-date').value = '';
-                alert("تم إضافة الدين عليك بنجاح!");
-            });
-        }
-
-        function addDebtOwed() {
-            const amount = parseFloat(document.getElementById('owed-amount').value);
-            const owedBy = document.getElementById('owed-by').value;
-            const owedDate = document.getElementById('owed-date').value;
-            
-            if (!amount || !owedBy || !owedDate) {
-                alert('الرجاء إدخال المبلغ، المستدين منك، وتاريخ السداد المتوقع.');
-                return;
-            }
-
-            db.collection("debts_owed").add({
-                userId: userId,
-                amount: amount,
-                owedBy: owedBy,
-                expectedDate: owedDate,
-                status: 'قيد التحصيل',
-                currency: currentCurrencySymbol,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                document.getElementById('owed-amount').value = '';
-                document.getElementById('owed-by').value = '';
-                document.getElementById('owed-date').value = '';
-                alert("تم إضافة الدين لك بنجاح!");
-            });
-        }
-
-        // **********************************************
-        // 6. دوال جلب البيانات وعرضها (Read)
-        // **********************************************
-
-        function loadExpenses() {
-            if (!userId) return;
-
-            db.collection("expenses")
-              .where("userId", "==", userId)
-              .orderBy("timestamp", "desc")
-              .limit(10)
-              .onSnapshot((querySnapshot) => {
-                const list = document.getElementById('expenses-list');
-                list.innerHTML = '';
-                
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleDateString('ar-EG') : 'غير محدد';
-                    const item = document.createElement('div');
-                    item.className = 'transaction-item';
-                    item.innerHTML = `
-                        <div style="font-size: 1.2em; font-weight: bold; color: #dc3545;">
-                            -${formatAmount(data.amount)}
-                        </div>
-                        <div style="font-size: 0.9em; color: #6c757d;">
-                            ${data.category} | ${date}
-                        </div>
-                        <div style="margin-top: 5px;">
-                            ${data.description}
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
-            });
-        }
-
-        function loadDebtsDue() {
-            if (!userId) return;
-
-            db.collection("debts_due")
-              .where("userId", "==", userId)
-              .orderBy("timestamp", "desc")
-              .onSnapshot((querySnapshot) => {
-                const list = document.getElementById('debts-due-list');
-                list.innerHTML = '';
-                
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const item = document.createElement('div');
-                    item.className = 'transaction-item debt-due';
-                    item.innerHTML = `
-                        <div style="font-size: 1.2em; font-weight: bold;">
-                            دين مستحق: ${formatAmount(data.amount)}
-                        </div>
-                        <div style="font-size: 0.9em; color: #6c757d;">
-                            لصالح: ${data.dueTo} | حالة: ${data.status}
-                        </div>
-                        <div style="margin-top: 5px; color: #dc3545;">
-                            تاريخ الاستحقاق: ${data.dueDate}
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
-            });
-        }
-
-        function loadDebtsOwed() {
-            if (!userId) return;
-
-            db.collection("debts_owed")
-              .where("userId", "==", userId)
-              .orderBy("timestamp", "desc")
-              .onSnapshot((querySnapshot) => {
-                const list = document.getElementById('debts-owed-list');
-                list.innerHTML = '';
-                
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const item = document.createElement('div');
-                    item.className = 'transaction-item debt-owed';
-                    item.innerHTML = `
-                        <div style="font-size: 1.2em; font-weight: bold;">
-                            دين لك: ${formatAmount(data.amount)}
-                        </div>
-                        <div style="font-size: 0.9em; color: #6c757d;">
-                            على: ${data.owedBy} | حالة: ${data.status}
-                        </div>
-                        <div style="margin-top: 5px; color: #28a745;">
-                            السداد المتوقع: ${data.expectedDate}
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
-            });
-        }
-    </script>
-
-</body>
-</html>
-
