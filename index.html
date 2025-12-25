@@ -1,56 +1,3 @@
-
-    <div id="details-modal" style="
-        display: none; 
-        position: fixed; 
-        z-index: 1000; 
-        left: 0; 
-        top: 0; 
-        width: 100%; 
-        height: 100%; 
-        overflow: auto; 
-        background-color: rgba(0,0,0,0.8);
-        padding-top: 60px;
-    ">
-        <div style="
-            background-color: #fefefe;
-            margin: 5% auto; /* 5% من الأعلى و المركز */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 10px;
-            position: relative;
-        ">
-            <span onclick="closeModal()" style="
-                color: #aaa;
-                float: left;
-                font-size: 28px;
-                font-weight: bold;
-                cursor: pointer;
-            ">&times;</span>
-            <h2>تفاصيل المعاملة</h2>
-            <div id="details-content">
-                </div>
-            <div id="image-area" style="text-align: center; margin-top: 20px;">
-                </div>
-            
-            <button id="download-button" style="display: none; margin-top: 15px; width: 100%;" onclick="downloadImage()">
-                حفظ صورة الفاتورة
-            </button>
-            
-        </div>
-    </div>
-    ```
-
-### 2. تحديث JavaScript (دوال العرض والتفاصيل)
-
-**لقد تم تحديث دالة `renderList` لربط كل سجل بالدالة الجديدة `showTransactionDetails`.**
-
----
-
-### 💻 الكود الكامل والمحدث (النسخة النهائية)
-
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -85,7 +32,7 @@
             background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
             border-right: 5px solid #007bff;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            cursor: pointer; /* مؤشر اليد للدلالة على أنه زر */
+            cursor: pointer; 
         }
         .transaction-item:hover {
             background: #f0f0f0;
@@ -259,12 +206,14 @@
         // 2. إعدادات Firebase
         // **********************************************
         const firebaseConfig = {
-            apiKey: "AIzaSyBENy9kG69uDwR1-oSJqXYFlEyDHuCgZmc",
-            authDomain: "masrufati.firebaseapp.com",
-            projectId: "masrufati",
-            storageBucket: "masrufati.firebasestorage.app",
-            messagingSenderId: "848472873404",
-            appId: "1:848472873404:web:ffd9ada5fe1d0708f133b9"
+            // 👇👇👇 يجب تغيير هذه القيم لتطابق مشروعك في Firebase Console 👇👇👇
+            apiKey: "AIzaSyBENy9kG69uDwR1-oSJqXYFlEyDHuCgZmc", // غيّر هذا
+            authDomain: "masrufati.firebaseapp.com", // غيّر هذا
+            projectId: "masrufati", // غيّر هذا
+            storageBucket: "masrufati.firebasestorage.app", // غيّر هذا
+            messagingSenderId: "848472873404", // غيّر هذا
+            appId: "1:848472873404:web:ffd9ada5fe1d0708f133b9" // غيّر هذا
+            // 👆👆👆 يجب تغيير هذه القيم لتطابق مشروعك في Firebase Console 👆👆👆
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -275,7 +224,7 @@
         let userId = null;
         const authError = document.getElementById('auth-error');
         let currentCurrencySymbol = 'SAR';
-        let currentImageUrlToDownload = null; // لتخزين رابط الصورة الجاري عرضها
+        let currentImageUrlToDownload = null; 
 
         // تعريف مفاتيح التخزين المحلي
         const EXPENSE_KEY = 'local_expenses';
@@ -311,7 +260,7 @@
         }
         
         // **********************************************
-        // 4. دوال المصادقة والمزامنة (بدون تغيير)
+        // 4. دوال المصادقة والمزامنة
         // **********************************************
         
         async function syncLocalToFirebase() {
@@ -438,7 +387,7 @@
         // **********************************************
         
         async function uploadBillImage(file) {
-            if (!userId) return null; // لا نرفع الصورة إذا لم يكن مسجل الدخول
+            if (!userId) return null; 
 
             const filePath = `bills/${userId}/${Date.now()}_${file.name}`;
             const storageRef = storage.ref(filePath);
@@ -482,7 +431,6 @@
                 description: description,
                 currency: currentCurrencySymbol,
                 imageUrl: imageUrl || null, 
-                // نستخدم التوقيت المحلي لترتيب العرض في التخزين المحلي
                 timestamp: userId ? null : new Date().toISOString() 
             };
 
@@ -502,7 +450,6 @@
             alert("تم حفظ المصروف بنجاح!");
         }
 
-        // ... (دوال addDebtDue و addDebtOwed لم تتغير) ...
         function addDebtDue() {
             const amount = parseFloat(document.getElementById('due-amount').value);
             const dueTo = document.getElementById('due-to').value;
@@ -516,225 +463,4 @@
             const debtDueData = {
                 amount: amount,
                 dueTo: dueTo,
-                dueDate: dueDate,
-                status: 'قيد السداد',
-                currency: currentCurrencySymbol,
-                timestamp: userId ? null : new Date().toISOString()
-            };
-
-            if (userId) {
-                 db.collection("debts_due").add({...debtDueData, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()})
-                .catch((error) => console.error("خطأ في Firebase: ", error));
-            } else {
-                const data = getLocalData(DUE_KEY);
-                data.unshift(debtDueData);
-                saveLocalData(DUE_KEY, data);
-                loadLocalData();
-            }
-            
-            document.getElementById('due-amount').value = '';
-            document.getElementById('due-to').value = '';
-            document.getElementById('due-date').value = '';
-            alert("تم إضافة الدين عليك بنجاح!");
-        }
-
-        function addDebtOwed() {
-            const amount = parseFloat(document.getElementById('owed-amount').value);
-            const owedBy = document.getElementById('owed-by').value;
-            const owedDate = document.getElementById('owed-date').value;
-            
-            if (!amount || !owedBy || !owedDate) {
-                alert('الرجاء إدخال المبلغ، المستدين منك، وتاريخ السداد المتوقع.');
-                return;
-            }
-
-            const debtOwedData = {
-                amount: amount,
-                owedBy: owedBy,
-                expectedDate: owedDate,
-                status: 'قيد التحصيل',
-                currency: currentCurrencySymbol,
-                timestamp: userId ? null : new Date().toISOString()
-            };
-
-            if (userId) {
-                db.collection("debts_owed").add({...debtOwedData, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()})
-                .catch((error) => console.error("خطأ في Firebase: ", error));
-            } else {
-                const data = getLocalData(OWED_KEY);
-                data.unshift(debtOwedData);
-                saveLocalData(OWED_KEY, data);
-                loadLocalData();
-            }
-
-            document.getElementById('owed-amount').value = '';
-            document.getElementById('owed-by').value = '';
-            document.getElementById('owed-date').value = '';
-            alert("تم إضافة الدين لك بنجاح!");
-        }
-
-
-        // **********************************************
-        // 6. دوال العرض والتفاصيل (المحدثة)
-        // **********************************************
-        
-        // ** دالة عرض التفاصيل المنبثقة (الجديدة) **
-        function showTransactionDetails(data, type) {
-            const modal = document.getElementById('details-modal');
-            const content = document.getElementById('details-content');
-            const imageArea = document.getElementById('image-area');
-            const downloadButton = document.getElementById('download-button');
-            
-            currentImageUrlToDownload = null; // إعادة تعيين الرابط
-
-            content.innerHTML = '';
-            imageArea.innerHTML = '';
-            downloadButton.style.display = 'none';
-
-            let detailsHtml = '';
-            const amountFormatted = formatAmount(data.amount);
-            const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleDateString('ar-EG') : (data.timestamp ? new Date(data.timestamp).toLocaleDateString('ar-EG') : 'غير محدد');
-
-            if (type === 'expense') {
-                detailsHtml += `<div class="detail-row"><span class="detail-label">المبلغ:</span> <span>${amountFormatted}</span></div>`;
-                detailsHtml += `<div class="detail-row"><span class="detail-label">التاريخ:</span> <span>${date}</span></div>`;
-                detailsHtml += `<div class="detail-row"><span class="detail-label">الفئة:</span> <span>${data.category}</span></div>`;
-                detailsHtml += `<div class="detail-row"><span class="detail-label">الوصف:</span> <span>${data.description}</span></div>`;
-
-                if (data.imageUrl) {
-                    imageArea.innerHTML = `<img src="${data.imageUrl}" class="bill-image-modal" alt="صورة الفاتورة">`;
-                    downloadButton.style.display = 'block';
-                    currentImageUrlToDownload = data.imageUrl;
-                } else {
-                    imageArea.innerHTML = '<p style="color:#aaa;">لم يتم إرفاق صورة فاتورة.</p>';
-                }
-            } else if (type === 'due') {
-                detailsHtml += `<div class="detail-row"><span class="detail-label">المبلغ المستحق عليك:</span> <span>${amountFormatted}</span></div>`;
-                detailsHtml += `<div class="detail-row"><span class="detail-label">المدين له:</span> <span>${data.dueTo}</span></div>`;
-                detailsHtml += `<div class="detail-row"><span class="detail-label">تاريخ الاستحقاق:</span> <span>${data.dueDate}</span></div>`;
-                detailsHtml += `<div class="detail-row"><span class="detail-label">الحالة:</span> <span>${data.status}</span></div>`;
-            } else { // owed
-                detailsHtml += `<div class="detail-row"><span class="detail-label">المبلغ المستحق لك:</span> <span>${amountFormatted}</span></div>`;
-                detailsHtml += `<div class="detail-row"><span class="detail-label">المستدين منك:</span> <span>${data.owedBy}</span></div>`;
-                detailsHtml += `<div class="detail-row"><span class="detail-label">تاريخ السداد المتوقع:</span> <span>${data.expectedDate}</span></div>`;
-                detailsHtml += `<div class="detail-row"><span class="detail-label">الحالة:</span> <span>${data.status}</span></div>`;
-            }
-
-            content.innerHTML = detailsHtml;
-            modal.style.display = "block";
-        }
-        
-        // ** دالة إغلاق الواجهة المنبثقة **
-        function closeModal() {
-            document.getElementById('details-modal').style.display = "none";
-        }
-        
-        // ** دالة حفظ الصورة **
-        function downloadImage() {
-            if (currentImageUrlToDownload) {
-                // إنشاء عنصر a وهمي لتحميل الصورة
-                const a = document.createElement('a');
-                a.href = currentImageUrlToDownload;
-                a.download = 'bill_image_' + Date.now() + '.jpg'; // اسم الملف
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            }
-        }
-        
-        // ** دالة عرض البيانات المحدثة **
-        function renderList(key, listElement, type, dataArray = null) {
-            listElement.innerHTML = '';
-            
-            const dataToRender = dataArray || getLocalData(key);
-            
-            if (dataToRender.length === 0) {
-                listElement.innerHTML = '<p style="color:#6c757d; text-align:center;">لا يوجد سجلات حالياً.</p>';
-                return;
-            }
-
-            dataToRender.forEach((data) => {
-                const item = document.createElement('div');
-                item.className = 'transaction-item ' + (type === 'due' ? 'debt-due' : type === 'owed' ? 'debt-owed' : '');
-                
-                // إضافة معالج الحدث لفتح التفاصيل
-                // نستخدم JSON.stringify و encodeURIComponent لحفظ البيانات داخل الدالة
-                const dataString = encodeURIComponent(JSON.stringify(data));
-                item.setAttribute('onclick', `showTransactionDetails(JSON.parse(decodeURIComponent('${dataString}')), '${type}')`);
-
-                let mainText, subText;
-                
-                if (type === 'expense') {
-                    mainText = `-${formatAmount(data.amount)}`;
-                    subText = `${data.category} | ${data.description.substring(0, 30)}${data.description.length > 30 ? '...' : ''}`;
-                    if (data.imageUrl) {
-                        subText += ' (صورة مرفقة)';
-                    }
-                } else if (type === 'due') {
-                    mainText = `دين مستحق: ${formatAmount(data.amount)}`;
-                    subText = `لصالح: ${data.dueTo} | تاريخ: ${data.dueDate}`;
-                } else { // owed
-                    mainText = `دين لك: ${formatAmount(data.amount)}`;
-                    subText = `على: ${data.owedBy} | تاريخ: ${data.expectedDate}`;
-                }
-
-                item.innerHTML = `
-                    <div style="font-size: 1.2em; font-weight: bold; color: ${type === 'expense' || type === 'due' ? '#dc3545' : '#28a745'};">
-                        ${mainText}
-                    </div>
-                    <div style="font-size: 0.9em; color: #6c757d;">
-                        ${subText}
-                    </div>
-                `;
-                listElement.appendChild(item);
-            });
-        }
-        
-        function loadLocalData() {
-            renderList(EXPENSE_KEY, document.getElementById('expenses-list'), 'expense');
-            renderList(DUE_KEY, document.getElementById('debts-due-list'), 'due');
-            renderList(OWED_KEY, document.getElementById('debts-owed-list'), 'owed');
-        }
-        
-        function loadExpenses() {
-            if (!userId) return;
-            db.collection("expenses")
-              .where("userId", "==", userId)
-              .orderBy("timestamp", "desc")
-              .limit(10)
-              .onSnapshot((querySnapshot) => {
-                const dataArray = [];
-                querySnapshot.forEach((doc) => dataArray.push(doc.data()));
-                renderList(EXPENSE_KEY, document.getElementById('expenses-list'), 'expense', dataArray);
-            });
-        }
-        
-        function loadDebtsDue() {
-            if (!userId) return;
-            db.collection("debts_due")
-              .where("userId", "==", userId)
-              .orderBy("timestamp", "desc")
-              .onSnapshot((querySnapshot) => {
-                const dataArray = [];
-                querySnapshot.forEach((doc) => dataArray.push(doc.data()));
-                renderList(DUE_KEY, document.getElementById('debts-due-list'), 'due', dataArray);
-            });
-        }
-
-        function loadDebtsOwed() {
-            if (!userId) return;
-            db.collection("debts_owed")
-              .where("userId", "==", userId)
-              .orderBy("timestamp", "desc")
-              .onSnapshot((querySnapshot) => {
-                const dataArray = [];
-                querySnapshot.forEach((doc) => dataArray.push(doc.data()));
-                renderList(OWED_KEY, document.getElementById('debts-owed-list'), 'owed', dataArray);
-            });
-        }
-        
-        loadLocalData();
-    </script>
-
-</body>
-</html>
+             
