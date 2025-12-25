@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -16,8 +15,8 @@
         #app-container { max-width: 650px; margin: 20px auto; padding: 25px; background: #fff; border-radius: 12px; box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
         h1 { color: #007bff; text-align: center; margin-bottom: 20px; }
         h3 { border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px; color: #555; }
-        .tab-content { display: none; padding: 15px 0; }
-        .tab-content.active { display: block; }
+        .tab-content { padding: 15px 0; }
+        .tab-content:not(.active) { display: none; }
         button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
         button:hover { background-color: #0056b3; }
         input, select { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
@@ -33,6 +32,13 @@
         .transaction-item.debt-owed { border-right: 5px solid #28a745; }
         .google-btn { background-color: #db4437 !important; margin-top: 20px !important; }
         .google-btn:hover { background-color: #c13124 !important; }
+        
+        /* جعل منطقة الدخول تظهر بوضوح في الأسفل */
+        #auth-area {
+            border-top: 2px dashed #ccc;
+            padding-top: 20px;
+            margin-top: 30px;
+        }
     </style>
 </head>
 <body>
@@ -57,26 +63,12 @@
         </div>
 
 
-        <div id="auth-area">
-            <h2>تسجيل الدخول / حساب جديد</h2>
-            <input type="email" id="email" placeholder="البريد الإلكتروني">
-            <input type="password" id="password" placeholder="كلمة المرور">
-            <button onclick="signIn()">دخول</button>
-            <button onclick="signUp()">إنشاء حساب</button>
-            
-            <hr style="margin: 20px 0;">
-            
-            <button onclick="signInWithGoogle()" class="google-btn" style="width: 100%;">
-                تسجيل الدخول باستخدام Google 🚀
-            </button>
-            
-            <p id="auth-error" style="color: red;"></p>
-        </div>
-
-        <div id="main-app" style="display: none;">
+        <div id="main-app">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <p style="font-size: 1.1em; font-weight: bold;">مرحباً، <span id="user-email-display"></span>!</p> 
-                <button onclick="signOut()">خروج</button>
+                <p style="font-size: 1.1em; font-weight: bold;">
+                    مرحباً! حالة الدخول: <span id="user-status-display">غير مسجل</span>
+                </p> 
+                <button onclick="signOut()" id="signOut-button" style="display: none;">خروج</button>
             </div>
             
             <div class="tabs">
@@ -130,11 +122,32 @@
                     </div>
             </div>
 
-        </div> </div> 
+        </div> 
+        
+        <div id="auth-area">
+            <h2>تسجيل الدخول / مزامنة البيانات السحابية</h2>
+            <p style="color: #6c757d; font-size: 0.9em;">
+                قم بتسجيل الدخول لحفظ بياناتك ومزامنتها سحابياً وتجنب ضياعها.
+            </p>
+            <input type="email" id="email" placeholder="البريد الإلكتروني">
+            <input type="password" id="password" placeholder="كلمة المرور">
+            <button onclick="signIn()">دخول</button>
+            <button onclick="signUp()">إنشاء حساب</button>
+            
+            <hr style="margin: 20px 0;">
+            
+            <button onclick="signInWithGoogle()" class="google-btn" style="width: 100%;">
+                تسجيل الدخول باستخدام Google 🚀
+            </button>
+            
+            <p id="auth-error" style="color: red;"></p>
+        </div>
+        
+    </div> 
         
     <script>
         // **********************************************
-        // 2. إعدادات Firebase (مفاتيح مشروع 'مصروفاتي' الحقيقية)
+        // 1. إعدادات Firebase
         // **********************************************
         const firebaseConfig = {
             apiKey: "AIzaSyBENy9kG69uDwR1-oSJqXYFlEyDHuCgZmc",
@@ -145,7 +158,6 @@
             appId: "1:848472873404:web:ffd9ada5fe1d0708f133b9"
         };
 
-        // تهيئة Firebase بالطريقة القديمة (Compat)
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -154,6 +166,26 @@
         const authError = document.getElementById('auth-error');
         let currentCurrencySymbol = 'SAR';
 
+        // تعريف مفاتيح التخزين المحلي
+        const EXPENSE_KEY = 'local_expenses';
+        const DUE_KEY = 'local_debts_due';
+        const OWED_KEY = 'local_debts_owed';
+
+
+        // **********************************************
+        // 2. دوال التخزين المحلي (LOCAL STORAGE)
+        // **********************************************
+
+        function getLocalData(key) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveLocalData(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+            // لتقليل المساحة، البيانات تُحفظ في هيئة JSON (وهو أفضل تنظيم ممكن)
+        }
+
         // **********************************************
         // 3. دوال إدارة العملة
         // **********************************************
@@ -161,7 +193,16 @@
         function updateCurrencySymbol() {
             const selectElement = document.getElementById('currency-select');
             currentCurrencySymbol = selectElement.value;
-            console.log(`تم تغيير العملة إلى: ${currentCurrencySymbol}`);
+            // عند تغيير العملة، قم بإعادة تحميل البيانات المحلية أو السحابية
+            if (userId) {
+                loadExpenses();
+                loadDebtsDue();
+                loadDebtsOwed();
+            } else {
+                renderList(EXPENSE_KEY, document.getElementById('expenses-list'), 'expense');
+                renderList(DUE_KEY, document.getElementById('debts-due-list'), 'due');
+                renderList(OWED_KEY, document.getElementById('debts-owed-list'), 'owed');
+            }
         }
 
         function formatAmount(amount) {
@@ -169,9 +210,63 @@
         }
 
         // **********************************************
-        // 4. دوال المصادقة (التسجيل والدخول/الخروج)
+        // 4. دوال المصادقة (التسجيل والدخول/الخروج والمزامنة)
         // **********************************************
 
+        // دالة المزامنة: تنقل البيانات من التخزين المحلي إلى Firebase
+        async function syncLocalToFirebase() {
+            if (!userId) return;
+
+            const localExpense = getLocalData(EXPENSE_KEY);
+            const localDue = getLocalData(DUE_KEY);
+            const localOwed = getLocalData(OWED_KEY);
+            
+            if (localExpense.length + localDue.length + localOwed.length === 0) return;
+
+            if (!confirm(`تم العثور على ${localExpense.length} مصروف محلي و ${localDue.length + localOwed.length} دين. هل تريد مزامنتها الآن مع حسابك على Firebase؟`)) {
+                return; // إذا رفض المزامنة، نترك البيانات المحلية كما هي
+            }
+            
+            const batch = db.batch();
+
+            // مزامنة المصروفات
+            localExpense.forEach(data => {
+                const newDocRef = db.collection("expenses").doc();
+                data.userId = userId;
+                data.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                batch.set(newDocRef, data);
+            });
+
+            // مزامنة الديون المستحقة عليك
+            localDue.forEach(data => {
+                const newDocRef = db.collection("debts_due").doc();
+                data.userId = userId;
+                data.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                batch.set(newDocRef, data);
+            });
+
+            // مزامنة الديون التي لك على الناس
+            localOwed.forEach(data => {
+                const newDocRef = db.collection("debts_owed").doc();
+                data.userId = userId;
+                data.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                batch.set(newDocRef, data);
+            });
+
+            try {
+                await batch.commit();
+                alert("تمت مزامنة البيانات المحلية بنجاح مع حسابك السحابي! سيتم حذف النسخة المحلية.");
+                // مسح البيانات المحلية بعد المزامنة
+                localStorage.removeItem(EXPENSE_KEY);
+                localStorage.removeItem(DUE_KEY);
+                localStorage.removeItem(OWED_KEY);
+                loadExpenses(); // إعادة تحميل البيانات من Firebase
+            } catch (error) {
+                console.error("خطأ في المزامنة: ", error);
+                alert("حدث خطأ أثناء مزامنة البيانات. يرجى المحاولة مرة أخرى.");
+            }
+        }
+        
         function signUp() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -181,8 +276,8 @@
                 return;
             }
             auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    alert("تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.");
+                .then(() => {
+                    alert("تم إنشاء الحساب بنجاح! يتم الآن تسجيل دخولك ومزامنة البيانات.");
                 })
                 .catch((error) => {
                     authError.textContent = `خطأ في التسجيل: ${error.message}`;
@@ -199,13 +294,12 @@
                 });
         }
         
-        // دالة الدخول باستخدام Google
         function signInWithGoogle() {
             authError.textContent = '';
             const provider = new firebase.auth.GoogleAuthProvider();
 
             auth.signInWithPopup(provider)
-                .then((result) => {
+                .then(() => {
                     console.log("تم الدخول بنجاح عبر Google");
                 })
                 .catch((error) => {
@@ -218,24 +312,34 @@
         }
 
         auth.onAuthStateChanged((user) => {
+            const statusDisplay = document.getElementById('user-status-display');
+            const signOutButton = document.getElementById('signOut-button');
+            
             if (user) {
                 userId = user.uid;
+                statusDisplay.textContent = user.email;
+                signOutButton.style.display = 'block';
                 document.getElementById('auth-area').style.display = 'none';
-                document.getElementById('main-app').style.display = 'block';
-                document.getElementById('user-email-display').textContent = user.email;
-                
-                // تحميل البيانات عند الدخول
+
+                // محاولة مزامنة البيانات المحلية عند الدخول
+                syncLocalToFirebase();
+
+                // تحميل البيانات من Firebase
                 loadExpenses();
                 loadDebtsDue();
                 loadDebtsOwed();
+
             } else {
                 userId = null;
+                statusDisplay.textContent = 'غير مسجل (حفظ محلي)';
+                signOutButton.style.display = 'none';
                 document.getElementById('auth-area').style.display = 'block';
-                document.getElementById('main-app').style.display = 'none';
-                document.getElementById('user-email-display').textContent = '';
+
+                // تحميل البيانات من التخزين المحلي
+                loadLocalData();
             }
         });
-
+        
         // **********************************************
         // 5. دوال تبديل التبويبات (القوائم)
         // **********************************************
@@ -251,7 +355,7 @@
         });
 
         // **********************************************
-        // 6. دوال إضافة البيانات (Create)
+        // 6. دوال إضافة البيانات (Create) - تدعم Firebase أو Local Storage
         // **********************************************
 
         function addExpense() {
@@ -263,22 +367,30 @@
                 alert('الرجاء إدخال المبلغ واختيار الفئة.');
                 return;
             }
-
-            db.collection("expenses").add({
-                userId: userId,
+            
+            const expenseData = {
                 amount: amount,
                 category: category,
                 description: description,
                 currency: currentCurrencySymbol,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                document.getElementById('expense-amount').value = '';
-                document.getElementById('expense-description').value = '';
-            })
-            .catch((error) => {
-                console.error("خطأ في إضافة المصروف: ", error);
-            });
+                // لا نضع timestamp هنا إذا كانت محليا لتجنب التعقيد
+            };
+
+            if (userId) {
+                // حفظ في Firebase
+                db.collection("expenses").add({...expenseData, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()})
+                .catch((error) => console.error("خطأ في Firebase: ", error));
+            } else {
+                // حفظ في Local Storage
+                const data = getLocalData(EXPENSE_KEY);
+                data.unshift(expenseData); // إضافة في البداية
+                saveLocalData(EXPENSE_KEY, data);
+                renderList(EXPENSE_KEY, document.getElementById('expenses-list'), 'expense');
+            }
+
+            document.getElementById('expense-amount').value = '';
+            document.getElementById('expense-description').value = '';
+            alert("تم حفظ المصروف بنجاح!");
         }
 
         function addDebtDue() {
@@ -291,21 +403,28 @@
                 return;
             }
 
-            db.collection("debts_due").add({
-                userId: userId,
+            const debtDueData = {
                 amount: amount,
                 dueTo: dueTo,
                 dueDate: dueDate,
                 status: 'قيد السداد',
                 currency: currentCurrencySymbol,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                document.getElementById('due-amount').value = '';
-                document.getElementById('due-to').value = '';
-                document.getElementById('due-date').value = '';
-                alert("تم إضافة الدين عليك بنجاح!");
-            });
+            };
+
+            if (userId) {
+                 db.collection("debts_due").add({...debtDueData, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()})
+                .catch((error) => console.error("خطأ في Firebase: ", error));
+            } else {
+                const data = getLocalData(DUE_KEY);
+                data.unshift(debtDueData);
+                saveLocalData(DUE_KEY, data);
+                renderList(DUE_KEY, document.getElementById('debts-due-list'), 'due');
+            }
+            
+            document.getElementById('due-amount').value = '';
+            document.getElementById('due-to').value = '';
+            document.getElementById('due-date').value = '';
+            alert("تم إضافة الدين عليك بنجاح!");
         }
 
         function addDebtOwed() {
@@ -318,119 +437,127 @@
                 return;
             }
 
-            db.collection("debts_owed").add({
-                userId: userId,
+            const debtOwedData = {
                 amount: amount,
                 owedBy: owedBy,
                 expectedDate: owedDate,
                 status: 'قيد التحصيل',
                 currency: currentCurrencySymbol,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                document.getElementById('owed-amount').value = '';
-                document.getElementById('owed-by').value = '';
-                document.getElementById('owed-date').value = '';
-                alert("تم إضافة الدين لك بنجاح!");
-            });
+            };
+
+            if (userId) {
+                db.collection("debts_owed").add({...debtOwedData, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()})
+                .catch((error) => console.error("خطأ في Firebase: ", error));
+            } else {
+                const data = getLocalData(OWED_KEY);
+                data.unshift(debtOwedData);
+                saveLocalData(OWED_KEY, data);
+                renderList(OWED_KEY, document.getElementById('debts-owed-list'), 'owed');
+            }
+
+            document.getElementById('owed-amount').value = '';
+            document.getElementById('owed-by').value = '';
+            document.getElementById('owed-date').value = '';
+            alert("تم إضافة الدين لك بنجاح!");
         }
 
         // **********************************************
         // 7. دوال جلب البيانات وعرضها (Read)
         // **********************************************
+        
+        // دالة تحميل البيانات المحلية
+        function loadLocalData() {
+            renderList(EXPENSE_KEY, document.getElementById('expenses-list'), 'expense');
+            renderList(DUE_KEY, document.getElementById('debts-due-list'), 'due');
+            renderList(OWED_KEY, document.getElementById('debts-owed-list'), 'owed');
+        }
 
+        // دالة عرض البيانات المحلية أو السحابية
+        function renderList(key, listElement, type, dataArray = null) {
+            listElement.innerHTML = '';
+            
+            const dataToRender = dataArray || getLocalData(key);
+            
+            if (dataToRender.length === 0) {
+                listElement.innerHTML = '<p style="color:#6c757d; text-align:center;">لا يوجد سجلات حالياً.</p>';
+                return;
+            }
+
+            dataToRender.forEach((data) => {
+                const item = document.createElement('div');
+                item.className = 'transaction-item ' + (type === 'due' ? 'debt-due' : type === 'owed' ? 'debt-owed' : '');
+                
+                let mainText, subText, dateText;
+                
+                if (type === 'expense') {
+                    mainText = `-${formatAmount(data.amount)}`;
+                    subText = `${data.category} | ${data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleDateString('ar-EG') : 'محلي'} - ${data.description}`;
+                    dateText = '';
+                } else if (type === 'due') {
+                    mainText = `دين مستحق: ${formatAmount(data.amount)}`;
+                    subText = `لصالح: ${data.dueTo} | حالة: ${data.status}`;
+                    dateText = `تاريخ الاستحقاق: ${data.dueDate}`;
+                } else { // owed
+                    mainText = `دين لك: ${formatAmount(data.amount)}`;
+                    subText = `على: ${data.owedBy} | حالة: ${data.status}`;
+                    dateText = `السداد المتوقع: ${data.expectedDate}`;
+                }
+
+                item.innerHTML = `
+                    <div style="font-size: 1.2em; font-weight: bold; color: ${type === 'expense' || type === 'due' ? '#dc3545' : '#28a745'};">
+                        ${mainText}
+                    </div>
+                    <div style="font-size: 0.9em; color: #6c757d;">
+                        ${subText}
+                    </div>
+                    ${dateText ? `<div style="margin-top: 5px; color: ${type === 'due' ? '#dc3545' : '#28a745'};">${dateText}</div>` : ''}
+                `;
+                listElement.appendChild(item);
+            });
+        }
+
+        // دوال تحميل البيانات من Firebase
         function loadExpenses() {
             if (!userId) return;
-
             db.collection("expenses")
               .where("userId", "==", userId)
               .orderBy("timestamp", "desc")
               .limit(10)
               .onSnapshot((querySnapshot) => {
-                const list = document.getElementById('expenses-list');
-                list.innerHTML = '';
-                
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleDateString('ar-EG') : 'غير محدد';
-                    const item = document.createElement('div');
-                    item.className = 'transaction-item';
-                    item.innerHTML = `
-                        <div style="font-size: 1.2em; font-weight: bold; color: #dc3545;">
-                            -${formatAmount(data.amount)}
-                        </div>
-                        <div style="font-size: 0.9em; color: #6c757d;">
-                            ${data.category} | ${date}
-                        </div>
-                        <div style="margin-top: 5px;">
-                            ${data.description}
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
+                const dataArray = [];
+                querySnapshot.forEach((doc) => dataArray.push(doc.data()));
+                renderList(EXPENSE_KEY, document.getElementById('expenses-list'), 'expense', dataArray);
             });
         }
 
         function loadDebtsDue() {
             if (!userId) return;
-
             db.collection("debts_due")
               .where("userId", "==", userId)
               .orderBy("timestamp", "desc")
               .onSnapshot((querySnapshot) => {
-                const list = document.getElementById('debts-due-list');
-                list.innerHTML = '';
-                
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const item = document.createElement('div');
-                    item.className = 'transaction-item debt-due';
-                    item.innerHTML = `
-                        <div style="font-size: 1.2em; font-weight: bold;">
-                            دين مستحق: ${formatAmount(data.amount)}
-                        </div>
-                        <div style="font-size: 0.9em; color: #6c757d;">
-                            لصالح: ${data.dueTo} | حالة: ${data.status}
-                        </div>
-                        <div style="margin-top: 5px; color: #dc3545;">
-                            تاريخ الاستحقاق: ${data.dueDate}
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
+                const dataArray = [];
+                querySnapshot.forEach((doc) => dataArray.push(doc.data()));
+                renderList(DUE_KEY, document.getElementById('debts-due-list'), 'due', dataArray);
             });
         }
 
         function loadDebtsOwed() {
             if (!userId) return;
-
             db.collection("debts_owed")
               .where("userId", "==", userId)
               .orderBy("timestamp", "desc")
               .onSnapshot((querySnapshot) => {
-                const list = document.getElementById('debts-owed-list');
-                list.innerHTML = '';
-                
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const item = document.createElement('div');
-                    item.className = 'transaction-item debt-owed';
-                    item.innerHTML = `
-                        <div style="font-size: 1.2em; font-weight: bold;">
-                            دين لك: ${formatAmount(data.amount)}
-                        </div>
-                        <div style="font-size: 0.9em; color: #6c757d;">
-                            على: ${data.owedBy} | حالة: ${data.status}
-                        </div>
-                        <div style="margin-top: 5px; color: #28a745;">
-                            السداد المتوقع: ${data.expectedDate}
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
+                const dataArray = [];
+                querySnapshot.forEach((doc) => dataArray.push(doc.data()));
+                renderList(OWED_KEY, document.getElementById('debts-owed-list'), 'owed', dataArray);
             });
         }
+        
+        // تحميل البيانات المحلية عند بدء تشغيل التطبيق (حالة غير مسجل الدخول)
+        loadLocalData();
     </script>
 
 </body>
 </html>
+
