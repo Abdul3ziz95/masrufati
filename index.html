@@ -25,11 +25,13 @@
         .tab-button.active { border-bottom: 3px solid #007bff; color: #007bff; }
         .transaction-item { 
             background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
-            border-right: 5px solid #007bff; /* مصروفات */
+            border-right: 5px solid #007bff;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
-        .transaction-item.debt-due { border-right: 5px solid #dc3545; } /* ديون عليّ */
-        .transaction-item.debt-owed { border-right: 5px solid #28a745; } /* ديون لي */
+        .transaction-item.debt-due { border-right: 5px solid #dc3545; }
+        .transaction-item.debt-owed { border-right: 5px solid #28a745; }
+        .google-btn { background-color: #db4437 !important; margin-top: 20px !important; }
+        .google-btn:hover { background-color: #c13124 !important; }
     </style>
 </head>
 <body>
@@ -50,7 +52,7 @@
                 <option value="MAD">درهم مغربي (MAD)</option>
                 <option value="SDG">جنيه سوداني (SDG)</option>
                 <option value="USD">دولار أمريكي (USD)</option>
-                </select>
+            </select>
         </div>
 
 
@@ -60,6 +62,13 @@
             <input type="password" id="password" placeholder="كلمة المرور">
             <button onclick="signIn()">دخول</button>
             <button onclick="signUp()">إنشاء حساب</button>
+            
+            <hr style="margin: 20px 0;">
+            
+            <button onclick="signInWithGoogle()" class="google-btn" style="width: 100%;">
+                تسجيل الدخول باستخدام Google 🚀
+            </button>
+            
             <p id="auth-error" style="color: red;"></p>
         </div>
 
@@ -122,7 +131,7 @@
 
         </div> </div> <script>
         // **********************************************
-        // 1. إعدادات Firebase (تم لصقها من مشروعك 'مصروفاتي')
+        // 1. إعدادات Firebase (مفاتيح مشروع 'مصروفاتي' الحقيقية)
         // **********************************************
         const firebaseConfig = {
             apiKey: "AIzaSyBENy9kG69uDwR1-oSJqXYFlEyDHuCgZmc",
@@ -138,9 +147,9 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        let userId = null; // معرف المستخدم الحالي
+        let userId = null;
         const authError = document.getElementById('auth-error');
-        let currentCurrencySymbol = 'SAR'; // العملة الافتراضية
+        let currentCurrencySymbol = 'SAR';
 
         // **********************************************
         // 2. دوال إدارة العملة
@@ -150,10 +159,9 @@
             const selectElement = document.getElementById('currency-select');
             currentCurrencySymbol = selectElement.value;
             // يمكن هنا إعادة تحميل القوائم لعرض الرمز الجديد (سنتجاهلها لتبسيط الكود)
-            alert(`تم تغيير العملة إلى: ${currentCurrencySymbol}`);
+            console.log(`تم تغيير العملة إلى: ${currentCurrencySymbol}`);
         }
 
-        // دالة للمساعدة في تنسيق المبلغ
         function formatAmount(amount) {
             return `${amount.toLocaleString()} ${currentCurrencySymbol}`;
         }
@@ -186,6 +194,21 @@
             auth.signInWithEmailAndPassword(email, password)
                 .catch((error) => {
                     authError.textContent = `خطأ في الدخول: ${error.message}`;
+                });
+        }
+        
+        // دالة الدخول باستخدام Google (التي لم تظهر سابقاً)
+        function signInWithGoogle() {
+            authError.textContent = '';
+            const provider = new firebase.auth.GoogleAuthProvider();
+
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    console.log("تم الدخول بنجاح عبر Google");
+                })
+                .catch((error) => {
+                    // إذا ظهر خطأ هنا، فتأكد من تفعيل Google Sign-in في Firebase Console
+                    authError.textContent = `خطأ في الدخول بـ Google: ${error.message}`;
                 });
         }
 
@@ -245,13 +268,12 @@
                 amount: amount,
                 category: category,
                 description: description,
-                currency: currentCurrencySymbol, // حفظ العملة المستخدمة
+                currency: currentCurrencySymbol,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
                 document.getElementById('expense-amount').value = '';
                 document.getElementById('expense-description').value = '';
-                // لا داعي لتفريغ الفئة
             })
             .catch((error) => {
                 console.error("خطأ في إضافة المصروف: ", error);
@@ -411,3 +433,4 @@
 
 </body>
 </html>
+
