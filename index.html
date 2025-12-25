@@ -1,14 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ميزانك الذكي - إدارة الأموال والديون</title>
+    <title>ميزانك المالي الذكي</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -16,35 +16,63 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
 
     <style>
-        /* تصميم مبسط ومحسن */
+        /* تصميم أساسي */
         body { font-family: 'Arial', sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 0; direction: rtl; }
         #app-container { max-width: 650px; margin: 20px auto; padding: 25px; background: #fff; border-radius: 12px; box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
         h1 { color: #007bff; text-align: center; margin-bottom: 20px; }
         h3 { border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px; color: #555; }
-        .tab-content { padding: 15px 0; }
-        .tab-content:not(.active) { display: none; }
         button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
         button:hover { background-color: #0056b3; }
         input[type="text"], input[type="number"], input[type="date"], select { 
             width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; 
         }
         .input-group { margin-bottom: 10px; }
-        .tabs { display: flex; justify-content: space-around; border-bottom: 2px solid #007bff; margin-bottom: 20px; }
-        .tab-button { background: none; color: #333; border: none; padding: 12px 0; cursor: pointer; flex-grow: 1; border-bottom: 3px solid transparent; font-weight: bold; }
-        .tab-button.active { border-bottom: 3px solid #007bff; color: #007bff; }
         .transaction-item { 
             background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
             border-right: 5px solid #007bff;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             cursor: pointer; 
         }
-        .transaction-item:hover { background: #f0f0f0; }
         .google-btn { background-color: #db4437 !important; margin-top: 20px !important; }
-        .google-btn:hover { background-color: #c13124 !important; }
         #auth-area { border-top: 2px dashed #ccc; padding-top: 20px; margin-top: 30px; }
-        .bill-image-modal { max-width: 100%; height: auto; border-radius: 4px; }
-        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dotted #eee; }
-        .detail-label { font-weight: bold; color: #555; }
+
+        /* 🔴🟡🟢 تصميم لوحة التحكم (Dashboard) الجديدة 🟢🟡🔴 */
+        .dashboard-square {
+            color: white;
+            padding: 20px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 120px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            text-align: center;
+        }
+        .dashboard-square:hover {
+            transform: scale(1.03);
+        }
+        /* الألوان حسب طلبك */
+        .red-square {
+            background-color: #dc3545; /* أحمر */
+        }
+        .green-square {
+            background-color: #28a745; /* أخضر */
+        }
+        .white-square {
+            background-color: #ffffff;
+            color: #333;
+            border: 1px solid #ccc;
+            font-size: 0.9em;
+        }
+        /* إخفاء المحتوى عند عرض لوحة التحكم */
+        #content-views > div {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -70,72 +98,101 @@
 
 
         <div id="main-app">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <p style="font-size: 1.1em; font-weight: bold;">
                     مرحباً! حالة الدخول: <span id="user-status-display">غير مسجل</span>
                 </p> 
             </div>
             
-            <div class="tabs">
-                <button class="tab-button active" data-tab="expenses">المصروفات اليومية</button>
-                <button class="tab-button" data-tab="debts-due">ديوني التي عليّ</button>
-                <button class="tab-button" data-tab="debts-owed">ديون الناس لي</button>
-            </div>
-
-            <div id="expenses" class="tab-content active">
-                <h3>إضافة مصروف جديد</h3>
-                <div class="input-group">
-                    <input type="number" id="expense-amount" placeholder="المبلغ">
-                    <select id="expense-category">
-                        <option value="">-- اختر الفئة --</option>
-                        <option value="طعام ومشروبات">طعام ومشروبات</option>
-                        <option value="إيجار وسكن">إيجار وسكن</option>
-                        <option value="مواصلات">مواصلات</option>
-                        <option value="فواتير">فواتير (كهرباء، ماء، إنترنت)</option>
-                        <option value="تعليم">تعليم</option>
-                        <option value="ترفيه">ترفيه</option>
-                        <option value="أخرى">أخرى</option>
-                    </select>
+            <div id="dashboard-view" style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 30px; text-align: center;">
+                
+                <div class="dashboard-square red-square" data-target="expenses">
+                    المصروفات اليومية
                 </div>
                 
-                <div class="input-group">
-                    <input type="text" id="expense-description" placeholder="الوصف (اختياري)">
+                <div class="dashboard-square red-square" data-target="debts-due">
+                    الإلتزامات<br>(ديوني التي عليّ)
                 </div>
                 
-                <div class="input-group">
-                    <label for="bill-image" style="display: block; margin-bottom: 5px;">إرفاق صورة الفاتورة (اختياري، يتطلب تسجيل دخول):</label>
-                    <input type="file" id="bill-image" accept="image/*">
+                <div class="dashboard-square green-square" data-target="debts-owed">
+                    الأصول<br>(ديون الناس لي)
                 </div>
                 
-                <button onclick="addExpense()">إضافة مصروف</button>
+                <div class="dashboard-square white-square" data-target="add-new">
+                    <span style="font-size: 3em; line-height: 0.5; display: block;">+</span>
+                    إضافة قائمة جديدة
+                </div>
                 
-                <h3>سجل المصروفات (آخر 10)</h3>
-                <div id="expenses-list">
-                    </div>
             </div>
+            <div id="content-views">
 
-            <div id="debts-due" class="tab-content">
-                <h3>إضافة دين عليّ (التزامات)</h3>
-                <input type="number" id="due-amount" placeholder="المبلغ الأصلي">
-                <input type="text" id="due-to" placeholder="المدين له (الجهة أو الشخص)">
-                <input type="date" id="due-date" title="تاريخ الاستحقاق">
-                <button onclick="addDebtDue()">إضافة دين عليّ</button>
-                
-                <h3>الديون المستحقة عليك</h3>
-                <div id="debts-due-list">
+                <div id="expenses" style="padding-top: 15px;">
+                    <button onclick="showDashboard()" style="margin-bottom: 20px; background-color: #6c757d;">
+                        العودة للرئيسية
+                    </button>
+
+                    <h3>إضافة مصروف جديد</h3>
+                    <div class="input-group">
+                        <input type="number" id="expense-amount" placeholder="المبلغ">
+                        <select id="expense-category">
+                            <option value="">-- اختر الفئة --</option>
+                            <option value="طعام ومشروبات">طعام ومشروبات</option>
+                            <option value="إيجار وسكن">إيجار وسكن</option>
+                            <option value="مواصلات">مواصلات</option>
+                            <option value="فواتير">فواتير (كهرباء، ماء، إنترنت)</option>
+                            <option value="تعليم">تعليم</option>
+                            <option value="ترفيه">ترفيه</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
                     </div>
-            </div>
-
-            <div id="debts-owed" class="tab-content">
-                <h3>إضافة دين الناس لي (أصول)</h3>
-                <input type="number" id="owed-amount" placeholder="المبلغ المستحق">
-                <input type="text" id="owed-by" placeholder="المستدين مني (الشخص)">
-                <input type="date" id="owed-date" title="تاريخ السداد المتوقع">
-                <button onclick="addDebtOwed()">إضافة دين لي</button>
-
-                <h3>الديون التي لك على الناس</h3>
-                <div id="debts-owed-list">
+                    
+                    <div class="input-group">
+                        <input type="text" id="expense-description" placeholder="الوصف (اختياري)">
                     </div>
+                    
+                    <div class="input-group">
+                        <label for="bill-image" style="display: block; margin-bottom: 5px;">إرفاق صورة الفاتورة (اختياري، يتطلب تسجيل دخول):</label>
+                        <input type="file" id="bill-image" accept="image/*">
+                    </div>
+                    
+                    <button onclick="addExpense()">إضافة مصروف</button>
+                    
+                    <h3>سجل المصروفات (آخر 10)</h3>
+                    <div id="expenses-list">
+                    </div>
+                </div>
+
+                <div id="debts-due" style="padding-top: 15px;">
+                    <button onclick="showDashboard()" style="margin-bottom: 20px; background-color: #6c757d;">
+                        العودة للرئيسية
+                    </button>
+
+                    <h3>إضافة دين عليّ (الإلتزامات)</h3>
+                    <input type="number" id="due-amount" placeholder="المبلغ الأصلي">
+                    <input type="text" id="due-to" placeholder="المدين له (الجهة أو الشخص)">
+                    <input type="date" id="due-date" title="تاريخ الاستحقاق">
+                    <button onclick="addDebtDue()">إضافة دين عليّ</button>
+                    
+                    <h3>الديون المستحقة عليك</h3>
+                    <div id="debts-due-list">
+                    </div>
+                </div>
+
+                <div id="debts-owed" style="padding-top: 15px;">
+                    <button onclick="showDashboard()" style="margin-bottom: 20px; background-color: #6c757d;">
+                        العودة للرئيسية
+                    </button>
+
+                    <h3>إضافة دين الناس لي (الأصول)</h3>
+                    <input type="number" id="owed-amount" placeholder="المبلغ المستحق">
+                    <input type="text" id="owed-by" placeholder="المستدين مني (الشخص)">
+                    <input type="date" id="owed-date" title="تاريخ السداد المتوقع">
+                    <button onclick="addDebtOwed()">إضافة دين لي</button>
+
+                    <h3>الديون التي لك على الناس</h3>
+                    <div id="debts-owed-list">
+                    </div>
+                </div>
             </div>
 
         </div> 
@@ -265,7 +322,7 @@
         }
         
         // **********************************************
-        // 4. دوال المصادقة والمزامنة (الحفظ التلقائي/الكامل)
+        // 4. دوال المصادقة والمزامنة
         // **********************************************
         
         async function syncLocalToFirebase() {
@@ -285,15 +342,13 @@
             
             const batch = db.batch();
 
-            // تجهيز المصروفات
             localExpense.forEach(data => {
                 const newDocRef = db.collection("expenses").doc();
-                delete data.timestamp; // حذف التاريخ المحلي
-                delete data.id; // حذف المعرف المحلي
+                delete data.timestamp; 
+                delete data.id; 
                 batch.set(newDocRef, {...data, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
             });
 
-            // تجهيز الديون التي علي
             localDue.forEach(data => {
                 const newDocRef = db.collection("debts_due").doc();
                 delete data.timestamp;
@@ -301,7 +356,6 @@
                 batch.set(newDocRef, {...data, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
             });
 
-            // تجهيز الديون التي لي
             localOwed.forEach(data => {
                 const newDocRef = db.collection("debts_owed").doc();
                 delete data.timestamp;
@@ -314,13 +368,12 @@
                 await batch.commit();
                 alert("تمت مزامنة البيانات المحلية بنجاح وحفظها سحابياً.");
                 
-                // الحذف بعد النجاح
                 localStorage.removeItem(EXPENSE_KEY);
                 localStorage.removeItem(DUE_KEY);
                 localStorage.removeItem(OWED_KEY);
                 
                 authError.textContent = 'تمت المزامنة بنجاح.';
-                loadExpenses(); // إعادة تحميل القوائم السحابية
+                loadExpenses(); 
             } catch (error) {
                 console.error("خطأ في المزامنة: ", error);
                 authError.textContent = `خطأ في المزامنة. تأكد من قواعد Firestore: ${error.message}`;
@@ -356,7 +409,7 @@
         }
 
 
-        // دالة مراقبة حالة المصادقة (تضمن الحفظ التلقائي للجلسة)
+        // دالة مراقبة حالة المصادقة
         auth.onAuthStateChanged((user) => {
             const statusDisplay = document.getElementById('user-status-display');
             
@@ -365,10 +418,8 @@
                 statusDisplay.textContent = user.email;
                 document.getElementById('auth-area').style.display = 'none';
 
-                // 🚨 المزامنة التلقائية عند الدخول
                 syncLocalToFirebase(); 
 
-                // تحميل البيانات السحابية
                 loadExpenses();
                 loadDebtsDue();
                 loadDebtsOwed();
@@ -378,7 +429,6 @@
                 statusDisplay.textContent = 'غير مسجل (حفظ محلي)';
                 document.getElementById('auth-area').style.display = 'block';
 
-                // تحميل البيانات المحلية
                 loadLocalData();
             }
         });
@@ -428,7 +478,7 @@
                     if (!imageUrl) return; 
                 } else {
                     alert('لا يمكن حفظ صورة الفاتورة محليًا. يرجى تسجيل الدخول أولاً للمزامنة السحابية.');
-                    document.getElementById('bill-image').value = ''; // مسح الملف لعدم الحفظ
+                    document.getElementById('bill-image').value = ''; 
                     return; 
                 }
             }
@@ -700,33 +750,57 @@
         }
         
         // **********************************************
-        // 7. تفعيل التنقل
+        // 7. دوال التنقل الجديدة (View Switching)
         // **********************************************
-        
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const targetTab = button.dataset.tab;
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                document.getElementById(targetTab).classList.add('active');
-                button.classList.add('active');
-            });
-        });
 
-        // 🟢 تفعيل الـ PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => {
-                    console.log('ServiceWorker registered:', registration);
-                })
-                .catch(error => {
-                    console.log('ServiceWorker registration failed:', error);
-                });
-            });
+        function showView(viewId) {
+            // إخفاء جميع الأقسام
+            document.getElementById('dashboard-view').style.display = 'none';
+            document.getElementById('expenses').style.display = 'none';
+            document.getElementById('debts-due').style.display = 'none';
+            document.getElementById('debts-owed').style.display = 'none';
+
+            if (viewId === 'dashboard') {
+                document.getElementById('dashboard-view').style.display = 'grid';
+            } else {
+                // عرض القسم المطلوب
+                document.getElementById(viewId).style.display = 'block';
+            }
+        }
+        
+        function showDashboard() {
+            showView('dashboard');
         }
 
-        loadLocalData();
+        // 8. تهيئة التطبيق عند التحميل
+        document.addEventListener('DOMContentLoaded', () => {
+             // ربط النقر بالمربعات الجديدة
+             document.querySelectorAll('.dashboard-square').forEach(square => {
+                 square.addEventListener('click', (event) => {
+                     const target = event.currentTarget.dataset.target;
+                     if (target !== 'add-new') {
+                        showView(target);
+                     } else {
+                         alert('هذه الميزة غير متاحة حالياً، يمكنك إضافة مصروف أو دين عبر الفئات الموجودة.');
+                     }
+                 });
+             });
+             
+             // تفعيل الـ PWA
+             if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => { console.log('ServiceWorker registered:', registration); })
+                    .catch(error => { console.log('ServiceWorker registration failed:', error); });
+                });
+            }
+             
+             // عرض لوحة التحكم عند بدء التشغيل
+             showDashboard();
+             // تحميل البيانات (محلياً إذا لم يكن مسجلاً)
+             loadLocalData();
+        });
+
     </script>
 
 </body>
