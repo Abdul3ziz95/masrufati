@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ميزانك الذكي - إدارة الأموال والديون</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* تصميم مبسط ومحسن */
+        body { font-family: 'Arial', sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 0; direction: rtl; }
+        #app-container { max-width: 650px; margin: 20px auto; padding: 25px; background: #fff; border-radius: 12px; box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
+        h1 { color: #007bff; text-align: center; margin-bottom: 20px; }
+        h3 { border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px; color: #555; }
+        .tab-content { display: none; padding: 15px 0; }
+        .tab-content.active { display: block; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        input, select { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .tabs { display: flex; justify-content: space-around; border-bottom: 2px solid #007bff; margin-bottom: 20px; }
+        .tab-button { background: none; color: #333; border: none; padding: 12px 0; cursor: pointer; flex-grow: 1; border-bottom: 3px solid transparent; font-weight: bold; }
+        .tab-button.active { border-bottom: 3px solid #007bff; color: #007bff; }
+        .transaction-item { 
+            background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
+            border-right: 5px solid #007bff; /* مصروفات */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .transaction-item.debt-due { border-right: 5px solid #dc3545; } /* ديون عليّ */
+        .transaction-item.debt-owed { border-right: 5px solid #28a745; } /* ديون لي */
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <h1>ميزانك المالي الذكي</h1>
+
+        <div style="text-align: center; margin-bottom: 15px;">
+            <label for="currency-select">اختر عملتك:</label>
+            <select id="currency-select" onchange="updateCurrencySymbol()">
+                <option value="SAR" selected>ريال سعودي (SAR)</option>
+                <option value="AED">درهم إماراتي (AED)</option>
+                <option value="EGP">جنيه مصري (EGP)</option>
+                <option value="KWD">دينار كويتي (KWD)</option>
+                <option value="DZD">دينار جزائري (DZD)</option>
+                <option value="JOD">دينار أردني (JOD)</option>
+                <option value="LBP">ليرة لبنانية (LBP)</option>
+                <option value="MAD">درهم مغربي (MAD)</option>
+                <option value="SDG">جنيه سوداني (SDG)</option>
+                <option value="USD">دولار أمريكي (USD)</option>
+                </select>
+        </div>
+
+
+        <div id="auth-area">
+            <h2>تسجيل الدخول / حساب جديد</h2>
+            <input type="email" id="email" placeholder="البريد الإلكتروني">
+            <input type="password" id="password" placeholder="كلمة المرور">
+            <button onclick="signIn()">دخول</button>
+            <button onclick="signUp()">إنشاء حساب</button>
+            <p id="auth-error" style="color: red;"></p>
+        </div>
+
+        <div id="main-app" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <p style="font-size: 1.1em; font-weight: bold;">مرحباً، <span id="user-email-display"></span>!</p> 
+                <button onclick="signOut()">خروج</button>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-button active" data-tab="expenses">المصروفات اليومية</button>
+                <button class="tab-button" data-tab="debts-due">ديوني التي عليّ</button>
+                <button class="tab-button" data-tab="debts-owed">ديون الناس لي</button>
+            </div>
+
+            <div id="expenses" class="tab-content active">
+                <h3>إضافة مصروف جديد</h3>
+                <input type="number" id="expense-amount" placeholder="المبلغ">
+                <select id="expense-category">
+                    <option value="">-- اختر الفئة --</option>
+                    <option value="طعام ومشروبات">طعام ومشروبات</option>
+                    <option value="إيجار وسكن">إيجار وسكن</option>
+                    <option value="مواصلات">مواصلات</option>
+                    <option value="فواتير">فواتير (كهرباء، ماء، إنترنت)</option>
+                    <option value="تعليم">تعليم</option>
+                    <option value="ترفيه">ترفيه</option>
+                    <option value="أخرى">أخرى</option>
+                </select>
+                <input type="text" id="expense-description" placeholder="الوصف (اختياري)">
+                <button onclick="addExpense()">إضافة مصروف</button>
+                
+                <h3>سجل المصروفات (آخر 10)</h3>
+                <div id="expenses-list">
+                    </div>
+            </div>
+
+            <div id="debts-due" class="tab-content">
+                <h3>إضافة دين عليّ (التزامات)</h3>
+                <input type="number" id="due-amount" placeholder="المبلغ الأصلي">
+                <input type="text" id="due-to" placeholder="المدين له (الجهة أو الشخص)">
+                <input type="date" id="due-date" title="تاريخ الاستحقاق">
+                <button onclick="addDebtDue()">إضافة دين عليّ</button>
+                
+                <h3>الديون المستحقة عليك</h3>
+                <div id="debts-due-list">
+                    </div>
+            </div>
+
+            <div id="debts-owed" class="tab-content">
+                <h3>إضافة دين الناس لي (أصول)</h3>
+                <input type="number" id="owed-amount" placeholder="المبلغ المستحق">
+                <input type="text" id="owed-by" placeholder="المستدين مني (الشخص)">
+                <input type="date" id="owed-date" title="تاريخ السداد المتوقع">
+                <button onclick="addDebtOwed()">إضافة دين لي</button>
+
+                <h3>الديون التي لك على الناس</h3>
+                <div id="debts-owed-list">
+                    </div>
+            </div>
+
+        </div> </div> <script>
+        // **********************************************
+        // 1. إعدادات Firebase (تم لصقها من مشروعك 'مصروفاتي')
+        // **********************************************
+        const firebaseConfig = {
+            apiKey: "AIzaSyBENy9kG69uDwR1-oSJqXYFlEyDHuCgZmc",
+            authDomain: "masrufati.firebaseapp.com",
+            projectId: "masrufati",
+            storageBucket: "masrufati.firebasestorage.app",
+            messagingSenderId: "848472873404",
+            appId: "1:848472873404:web:ffd9ada5fe1d0708f133b9"
+        };
+
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let userId = null; // معرف المستخدم الحالي
+        const authError = document.getElementById('auth-error');
+        let currentCurrencySymbol = 'SAR'; // العملة الافتراضية
+
+        // **********************************************
+        // 2. دوال إدارة العملة
+        // **********************************************
+
+        function updateCurrencySymbol() {
+            const selectElement = document.getElementById('currency-select');
+            currentCurrencySymbol = selectElement.value;
+            // يمكن هنا إعادة تحميل القوائم لعرض الرمز الجديد (سنتجاهلها لتبسيط الكود)
+            alert(`تم تغيير العملة إلى: ${currentCurrencySymbol}`);
+        }
+
+        // دالة للمساعدة في تنسيق المبلغ
+        function formatAmount(amount) {
+            return `${amount.toLocaleString()} ${currentCurrencySymbol}`;
+        }
+
+        // **********************************************
+        // 3. دوال المصادقة (التسجيل والدخول/الخروج)
+        // **********************************************
+
+        function signUp() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            authError.textContent = '';
+            if (password.length < 6) {
+                authError.textContent = 'كلمة المرور يجب أن تكون 6 أحرف أو أكثر.';
+                return;
+            }
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    alert("تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.");
+                })
+                .catch((error) => {
+                    authError.textContent = `خطأ في التسجيل: ${error.message}`;
+                });
+        }
+
+        function signIn() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            authError.textContent = '';
+            auth.signInWithEmailAndPassword(email, password)
+                .catch((error) => {
+                    authError.textContent = `خطأ في الدخول: ${error.message}`;
+                });
+        }
+
+        function signOut() {
+            auth.signOut();
+        }
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                userId = user.uid;
+                document.getElementById('auth-area').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                document.getElementById('user-email-display').textContent = user.email;
+                
+                // تحميل البيانات عند الدخول
+                loadExpenses();
+                loadDebtsDue();
+                loadDebtsOwed();
+            } else {
+                userId = null;
+                document.getElementById('auth-area').style.display = 'block';
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('user-email-display').textContent = '';
+            }
+        });
+
+        // **********************************************
+        // 4. دوال تبديل التبويبات (القوائم)
+        // **********************************************
+
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.dataset.tab;
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(targetTab).classList.add('active');
+                button.classList.add('active');
+            });
+        });
+
+        // **********************************************
+        // 5. دوال إضافة البيانات (Create)
+        // **********************************************
+
+        function addExpense() {
+            const amount = parseFloat(document.getElementById('expense-amount').value);
+            const category = document.getElementById('expense-category').value;
+            const description = document.getElementById('expense-description').value || 'لا يوجد وصف';
+
+            if (!amount || !category) {
+                alert('الرجاء إدخال المبلغ واختيار الفئة.');
+                return;
+            }
+
+            db.collection("expenses").add({
+                userId: userId,
+                amount: amount,
+                category: category,
+                description: description,
+                currency: currentCurrencySymbol, // حفظ العملة المستخدمة
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('expense-amount').value = '';
+                document.getElementById('expense-description').value = '';
+                // لا داعي لتفريغ الفئة
+            })
+            .catch((error) => {
+                console.error("خطأ في إضافة المصروف: ", error);
+            });
+        }
+
+        function addDebtDue() {
+            const amount = parseFloat(document.getElementById('due-amount').value);
+            const dueTo = document.getElementById('due-to').value;
+            const dueDate = document.getElementById('due-date').value;
+            
+            if (!amount || !dueTo || !dueDate) {
+                alert('الرجاء إدخال المبلغ، المدين له، وتاريخ الاستحقاق.');
+                return;
+            }
+
+            db.collection("debts_due").add({
+                userId: userId,
+                amount: amount,
+                dueTo: dueTo,
+                dueDate: dueDate,
+                status: 'قيد السداد',
+                currency: currentCurrencySymbol,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('due-amount').value = '';
+                document.getElementById('due-to').value = '';
+                document.getElementById('due-date').value = '';
+                alert("تم إضافة الدين عليك بنجاح!");
+            });
+        }
+
+        function addDebtOwed() {
+            const amount = parseFloat(document.getElementById('owed-amount').value);
+            const owedBy = document.getElementById('owed-by').value;
+            const owedDate = document.getElementById('owed-date').value;
+            
+            if (!amount || !owedBy || !owedDate) {
+                alert('الرجاء إدخال المبلغ، المستدين منك، وتاريخ السداد المتوقع.');
+                return;
+            }
+
+            db.collection("debts_owed").add({
+                userId: userId,
+                amount: amount,
+                owedBy: owedBy,
+                expectedDate: owedDate,
+                status: 'قيد التحصيل',
+                currency: currentCurrencySymbol,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('owed-amount').value = '';
+                document.getElementById('owed-by').value = '';
+                document.getElementById('owed-date').value = '';
+                alert("تم إضافة الدين لك بنجاح!");
+            });
+        }
+
+        // **********************************************
+        // 6. دوال جلب البيانات وعرضها (Read)
+        // **********************************************
+
+        function loadExpenses() {
+            if (!userId) return;
+
+            db.collection("expenses")
+              .where("userId", "==", userId)
+              .orderBy("timestamp", "desc")
+              .limit(10)
+              .onSnapshot((querySnapshot) => {
+                const list = document.getElementById('expenses-list');
+                list.innerHTML = '';
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleDateString('ar-EG') : 'غير محدد';
+                    const item = document.createElement('div');
+                    item.className = 'transaction-item';
+                    item.innerHTML = `
+                        <div style="font-size: 1.2em; font-weight: bold; color: #dc3545;">
+                            -${formatAmount(data.amount)}
+                        </div>
+                        <div style="font-size: 0.9em; color: #6c757d;">
+                            ${data.category} | ${date}
+                        </div>
+                        <div style="margin-top: 5px;">
+                            ${data.description}
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        function loadDebtsDue() {
+            if (!userId) return;
+
+            db.collection("debts_due")
+              .where("userId", "==", userId)
+              .orderBy("timestamp", "desc")
+              .onSnapshot((querySnapshot) => {
+                const list = document.getElementById('debts-due-list');
+                list.innerHTML = '';
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const item = document.createElement('div');
+                    item.className = 'transaction-item debt-due';
+                    item.innerHTML = `
+                        <div style="font-size: 1.2em; font-weight: bold;">
+                            دين مستحق: ${formatAmount(data.amount)}
+                        </div>
+                        <div style="font-size: 0.9em; color: #6c757d;">
+                            لصالح: ${data.dueTo} | حالة: ${data.status}
+                        </div>
+                        <div style="margin-top: 5px; color: #dc3545;">
+                            تاريخ الاستحقاق: ${data.dueDate}
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        function loadDebtsOwed() {
+            if (!userId) return;
+
+            db.collection("debts_owed")
+              .where("userId", "==", userId)
+              .orderBy("timestamp", "desc")
+              .onSnapshot((querySnapshot) => {
+                const list = document.getElementById('debts-owed-list');
+                list.innerHTML = '';
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const item = document.createElement('div');
+                    item.className = 'transaction-item debt-owed';
+                    item.innerHTML = `
+                        <div style="font-size: 1.2em; font-weight: bold;">
+                            دين لك: ${formatAmount(data.amount)}
+                        </div>
+                        <div style="font-size: 0.9em; color: #6c757d;">
+                            على: ${data.owedBy} | حالة: ${data.status}
+                        </div>
+                        <div style="margin-top: 5px; color: #28a745;">
+                            السداد المتوقع: ${data.expectedDate}
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>
