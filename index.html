@@ -1,473 +1,1416 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ميزانك المالي الذكي</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ميزانيتك الذكية</title>
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
+<style>
+/* ... (كود الـ CSS لم يتغير) ... */
+:root{--p:#0d6efd;--s:#28a745;--bg:#f4f6f8;--danger:#dc3545} /* إضافة متغير للخطر */
+body{margin:0;font-family:Tahom,a;background:var(--bg);overflow-x: hidden;} /* منع التمرير الأفقي */
 
-    <style>
-        /* تصميم أساسي */
-        body { font-family: 'Arial', sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 0; direction: rtl; }
-        #app-container { max-width: 650px; margin: 20px auto; padding: 25px; background: #fff; border-radius: 12px; box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
-        h1 { color: #007bff; text-align: center; margin-bottom: 20px; }
-        h3 { border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px; color: #555; }
-        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
-        button:hover { background-color: #0056b3; }
-        input[type="text"], input[type="number"], input[type="date"], select { 
-            width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; 
-        }
-        .input-group { margin-bottom: 10px; }
-        .transaction-item { 
-            background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
-            border-right: 5px solid #007bff;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            cursor: pointer; 
-        }
-        .google-btn { background-color: #db4437 !important; margin-top: 20px !important; }
-        #auth-area { border-top: 2px dashed #ccc; padding-top: 20px; margin-top: 30px; }
-        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dotted #eee; }
-        .detail-label { font-weight: bold; color: #555; }
+header{background:var(--p);color:#fff;padding:15px;text-align:center;font-size:20px;display:flex;justify-content:space-between;align-items:center;}
+header .title {flex-grow: 1; text-align: center;}
+header button {background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 0 10px;}
 
+.tabs{display:flex;background:#fff}
+.tabs button{flex:1;padding:12px;border:none;background:#fff}
+.tabs button.active{background:var(--p);color:#fff}
+.section{display:none;padding:15px}
+.section.active{display:block}
+.card{background:#fff;padding:15px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.1);margin-bottom:12px}
+input,select{width:100%;padding:12px;margin:6px 0;font-size:15px;border-radius:8px;border:1px solid #ccc;box-sizing: border-box;}
 
-        /* 🔴🟡🟢 تصميم لوحة التحكم (Dashboard) 🟢🟡🔴 */
-        .dashboard-square {
-            color: white;
-            padding: 20px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1.1em;
-            font-weight: bold;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 120px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-            text-align: center;
-        }
-        .dashboard-square:hover {
-            transform: scale(1.03);
-        }
-        /* الألوان حسب طلبك */
-        .red-square {
-            background-color: #dc3545; /* أحمر */
-        }
-        .green-square {
-            background-color: #28a745; /* أخضر */
-        }
-        .white-square {
-            background-color: #ffffff;
-            color: #333;
-            border: 1px solid #ccc;
-            font-size: 0.9em;
-        }
-        /* إخفاء المحتوى عند عرض لوحة التحكم */
-        #content-views > div {
-            display: none;
-        }
-    </style>
+.datetime-container {
+    position: relative;
+    width: 100%; 
+    margin: 6px 0; 
+}
+
+.datetime-container input[type="datetime-local"] {
+    margin: 0; 
+    padding-left: 35px; 
+    box-sizing: border-box;
+}
+
+.calendar-icon {
+    position: absolute;
+    top: 50%;
+    left: 10px; 
+    transform: translateY(-50%);
+    font-size: 1.2em;
+    z-index: 2;
+    pointer-events: none; 
+    color: var(--p); 
+}
+
+button.action{background:var(--s);color:#fff;border:none;padding:14px;width:100%;border-radius:8px;font-size:16px}
+button.secondary{background:#ddd;padding:10px;width:100%;border:none;border-radius:8px;margin-top:6px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 22px;border-radius:30px;display:none;z-index:100}
+.toast.show{display:block}
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;display:none;flex-direction:column;z-index:10}
+.modal header{display:flex;gap:6px;padding:10px;border-bottom:1px solid #ddd}
+.modal-content{padding:15px;overflow:auto;flex:1}
+.list-item{background:#eef6ff;padding:14px;border-radius:12px;margin-bottom:8px;cursor:pointer}
+.detail p{margin:8px 0}
+.detail img{width:100%;border-radius:10px;margin-top:10px}
+input[type="file"]:before {
+    content: "إرفاق صورة الفاتورة";
+    color: #777;
+    font-size: 14px;
+    display: block;
+    padding: 8px;
+    text-align: center;
+    background: #f4f6f8;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin: 10px 0;
+    cursor: pointer;
+}
+.currency-symbol { 
+    color: #28a745;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* ---------------------------------------------------- */
+/* كود الـ CSS للقائمة الجانبية (Sidebar) */
+/* ---------------------------------------------------- */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: 0; /* تموضع القائمة على اليمين للغة العربية */
+    width: 280px; /* عرض القائمة */
+    max-width: 80%;
+    height: 100%;
+    background: #fff;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+    transform: translateX(100%); /* إخفاء القائمة مبدئياً عن طريق تحريكها لليمين */
+    transition: transform 0.3s ease-in-out;
+    z-index: 20; /* فوق كل شيء تقريباً */
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar.open {
+    transform: translateX(0); /* إظهار القائمة */
+}
+
+.sidebar-header {
+    padding: 15px;
+    background: var(--p);
+    color: #fff;
+    font-size: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-content {
+    flex-grow: 1;
+    padding: 15px 0;
+    overflow-y: auto;
+}
+
+.sidebar-menu-item {
+    padding: 12px 15px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    color: #333;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.sidebar-menu-item:hover {
+    background: var(--bg);
+}
+
+/* طبقة التغطية الشفافة خلف القائمة الجانبية */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: none;
+    z-index: 15;
+}
+
+.sidebar-overlay.open {
+    display: block;
+}
+</style>
 </head>
+
 <body>
 
-    <div id="app-container">
-        <h1>ميزانك المالي الذكي</h1>
+<header>
+    <button onclick="toggleSidebar()">☰</button> 
+    <span class="title">ميزانيتك المالية الذكية</span>
+    <button style="visibility: hidden;">🔍</button> 
+</header>
 
-        <div style="text-align: center; margin-bottom: 15px;">
-            <label for="currency-select">اختر عملتك:</label>
-            <select id="currency-select" onchange="updateCurrencySymbol()">
-                <option value="SAR" selected>ريال سعودي (SAR)</option>
-                <option value="AED">درهم إماراتي (AED)</option>
-                <option value="EGP">جنيه مصري (EGP)</option>
-                <option value="KWD">دينار كويتي (KWD)</option>
-                <option value="DZD">دينار جزائري (DZD)</option>
-                <option value="JOD">دينار أردني (JOD)</option>
-                <option value="LBP">ليرة لبنانية (LBP)</option>
-                <option value="MAD">درهم مغربي (MAD)</option>
-                <option value="SDG">جنيه سوداني (SDG)</option>
-                <option value="USD">دولار أمريكي (USD)</option>
-            </select>
+<div class="tabs">
+<button class="active" onclick="openTab('expenses')">💸 مصروفات</button>
+<button onclick="openTab('rights')">🤝 حقوق</button>
+<button onclick="openTab('debts')">📌 التزامات</button>
+<button onclick="openTab('stats')">📊 الإحصائيات</button>
+</div>
+
+<div id="expenses" class="section active">
+<div class="card">
+<input id="eAmount" type="text" placeholder="💵 المبلغ" oninput="formatAmount(this)" pattern="[0-9]*" inputmode="decimal">
+<select id="eType">
+<option value="">الفئة (نفقات متغيرة)</option>
+<option>طعام</option><option>مواصلات</option>
+<option>رعاية شخصية</option><option>أجهزة إلكترونية</option>
+<option>صحة</option><option>ترفيه</option><option>تسوق</option>
+<option>تعليم</option><option>صيانة وإصلاح</option><option>أخرى</option>
+</select>
+<input id="eDesc" placeholder="وصف / ملاحظة">
+<div class="datetime-container">
+    <input id="eDate" type="datetime-local">
+    <span class="calendar-icon">📅</span>
+</div>
+<input id="eImg" type="file" accept="image/*">
+<button class="action" onclick="addExpense()">حفظ</button>
+<button class="secondary" onclick="openLog('exp')">📂 السجل</button>
+</div>
+</div>
+
+<div id="rights" class="section">
+<div class="card">
+<input id="rName" placeholder="اسم المدين" data-default-placeholder="اسم الشخص">
+<select id="rType" onchange="updateRightFields(this.value)">
+<option value="">نوع الحق</option>
+<option>دين</option>
+<option>بيع بالآجل</option>
+<option>أخرى</option>
+</select>
+<input id="rAmount" type="text" placeholder="💵 المبلغ المستحق (المبلغ الكلي)" oninput="formatAmount(this)" pattern="[0-9]*" inputmode="decimal">
+<div id="rDynamicFields"></div>
+<input id="rDesc" placeholder="وصف / ملاحظة">
+<div class="datetime-container">
+    <input id="rDate" type="datetime-local">
+    <span class="calendar-icon">📅</span>
+</div>
+<select id="rStatus">
+<option value="">الحالة</option>
+<option>مدفوع بالكامل</option>
+<option>غير مدفوع بعد</option>
+</select>
+<button class="action" onclick="addRight()">حفظ</button>
+<button class="secondary" onclick="openLog('rig')">📂 السجل</button>
+</div>
+</div>
+
+<div id="debts" class="section">
+<div class="card">
+<input id="dName" placeholder="اسم الدائن" data-default-placeholder="اسم الجهة">
+<select id="dType" onchange="updateDebtFields(this.value)">
+<option value="">نوع الالتزام</option>
+<option>إيجار</option>
+<option>كهرباء</option>
+<option>ماء</option>
+<option>إنترنت</option>
+<option>قرض</option> <option>دين شخصي</option> <option>قسط/فاتورة أخرى</option>
+<option>أخرى</option>
+</select>
+<input id="dAmount" type="text" placeholder="💵 قيمة الفاتورة/القسط الحالي" oninput="formatAmount(this)" pattern="[0-9]*" inputmode="decimal">
+
+<div id="dDynamicFields"></div>
+<input id="dDesc" placeholder="وصف / ملاحظة">
+<div class="datetime-container">
+    <input id="dDate" type="datetime-local">
+    <span class="calendar-icon">📅</span>
+</div>
+<select id="dStatus">
+<option value="">الحالة</option>
+<option>مدفوع</option>
+<option>غير مدفوع</option>
+</select>
+<button class="action" onclick="addDebt()">حفظ</button>
+<button class="secondary" onclick="openLog('deb')">📂 السجل</button>
+</div>
+</div>
+
+<div id="stats" class="section">
+<div class="card">
+<h3>💸 إجمالي المصروفات (المتغيرة والمدفوع من الالتزامات)</h3>
+<p>الإجمالي الكلي: <b id="sExpTotal">0</b></p>
+<p>عدد العمليات: <b id="sExpCount">0</b></p>
+<p>أعلى فئة: <b id="sTopCat">—</b></p>
+</div>
+<div class="card">
+<h3>🤝 الحقوق</h3>
+<p>الإجمالي المستحق: <b id="sRigTotal">0</b></p>
+<p>المحصل: <b id="sRigPaid">0</b></p>
+<p>المتبقي تحصيله: <b id="sRigUnpaid">0</b></p>
+</div>
+<div class="card">
+<h3>📌 الالتزامات (المبالغ الكلية للمسؤوليات)</h3>
+<p>إجمالي الالتزامات الكلية: <b id="sDebTotal">0</b></p>
+<p>إجمالي المدفوع حتى الآن (مصروف): <b id="sDebPaid">0</b></p>
+<p>المتبقي من القروض/الديون/الفواتير: <b id="sDebUnpaid">0</b></p>
+</div>
+</div>
+
+<div class="modal" id="logModal">
+<header>
+<input id="search" placeholder="🔍 بحث" oninput="renderLog()">
+<button onclick="closeLog()">إغلاق</button>
+</header>
+<div class="modal-content" id="logContent"></div>
+</div>
+
+<div class="modal" id="detailModal">
+<header>
+<button onclick="closeDetailAndClearEditMode()">إغلاق</button>
+</header>
+<div class="modal-content detail" id="detailContent"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar" id="appSidebar">
+    <div class="sidebar-header">
+        <span>الإعدادات والبيانات</span>
+        <button onclick="toggleSidebar()">✖</button>
+    </div>
+    <div class="sidebar-content">
+        <div class="card" style="margin: 0 15px 15px;">
+             <p style="font-weight: bold; margin-top: 0;">الإعدادات العامة</p>
+             <select>
+                 <option value="sar">العملة: ريال سعودي (SAR)</option>
+                 <option value="usd" disabled>العملة: دولار أمريكي (قريباً)</option>
+             </select>
+             </div>
+        
+        <div class="sidebar-menu-item" onclick="exportData()">
+            📁 تصدير البيانات (JSON)
         </div>
-
-
-        <div id="main-app">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <p style="font-size: 1.1em; font-weight: bold;">
-                    مرحباً! حالة الدخول: <span id="user-status-display">غير مسجل</span>
-                </p> 
-            </div>
-            
-            <div id="dashboard-view" style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 30px; text-align: center;">
-                
-                <div class="dashboard-square red-square" data-target="expenses">
-                    المصروفات اليومية
-                </div>
-                
-                <div class="dashboard-square red-square" data-target="debts-due">
-                    الإلتزامات<br>(ديوني التي عليّ)
-                </div>
-                
-                <div class="dashboard-square green-square" data-target="debts-owed">
-                    الأصول<br>(ديون الناس لي)
-                </div>
-                
-                <div class="dashboard-square white-square" data-target="add-new">
-                    <span style="font-size: 3em; line-height: 0.5; display: block; color: black;">+</span>
-                    إضافة قائمة جديدة
-                </div>
-                
-            </div>
-            <div id="content-views">
-
-                <div id="expenses" style="padding-top: 15px;">
-                    <button onclick="showDashboard()" style="margin-bottom: 20px; background-color: #6c757d;">
-                        العودة للرئيسية
-                    </button>
-
-                    <h3>إضافة مصروف جديد</h3>
-                    <div class="input-group">
-                        <input type="number" id="expense-amount" placeholder="المبلغ">
-                        <select id="expense-category">
-                            <option value="">-- اختر الفئة --</option>
-                            <option value="طعام ومشروبات">طعام ومشروبات</option>
-                            <option value="إيجار وسكن">إيجار وسكن</option>
-                            <option value="مواصلات">مواصلات</option>
-                            <option value="فواتير">فواتير (كهرباء، ماء، إنترنت)</option>
-                            <option value="تعليم">تعليم</option>
-                            <option value="ترفيه">ترفيه</option>
-                            <option value="أخرى">أخرى</option>
-                        </select>
-                    </div>
-                    
-                    <div class="input-group">
-                        <input type="text" id="expense-description" placeholder="الوصف (اختياري)">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label for="bill-image" style="display: block; margin-bottom: 5px;">إرفاق صورة الفاتورة (اختياري، يتطلب تسجيل دخول):</label>
-                        <input type="file" id="bill-image" accept="image/*">
-                    </div>
-                    
-                    <button onclick="addExpense()">إضافة مصروف</button>
-                    
-                    <h3>سجل المصروفات (آخر 10)</h3>
-                    <div id="expenses-list">
-                    </div>
-                </div>
-
-                <div id="debts-due" style="padding-top: 15px;">
-                    <button onclick="showDashboard()" style="margin-bottom: 20px; background-color: #6c757d;">
-                        العودة للرئيسية
-                    </button>
-
-                    <h3>إضافة دين عليّ (الإلتزامات)</h3>
-                    <input type="number" id="due-amount" placeholder="المبلغ الأصلي">
-                    <input type="text" id="due-to" placeholder="المدين له (الجهة أو الشخص)">
-                    <input type="date" id="due-date" title="تاريخ الاستحقاق">
-                    <button onclick="addDebtDue()">إضافة دين عليّ</button>
-                    
-                    <h3>الديون المستحقة عليك</h3>
-                    <div id="debts-due-list">
-                    </div>
-                </div>
-
-                <div id="debts-owed" style="padding-top: 15px;">
-                    <button onclick="showDashboard()" style="margin-bottom: 20px; background-color: #6c757d;">
-                        العودة للرئيسية
-                    </button>
-
-                    <h3>إضافة دين الناس لي (الأصول)</h3>
-                    <input type="number" id="owed-amount" placeholder="المبلغ المستحق">
-                    <input type="text" id="owed-by" placeholder="المستدين مني (الشخص)">
-                    <input type="date" id="owed-date" title="تاريخ السداد المتوقع">
-                    <button onclick="addDebtOwed()">إضافة دين لي</button>
-
-                    <h3>الديون التي لك على الناس</h3>
-                    <div id="debts-owed-list">
-                    </div>
-                </div>
-            </div>
-
-        </div> 
         
-        <div id="auth-area">
-            <h2>تسجيل الدخول / مزامنة البيانات السحابية</h2>
-            <p style="color: #6c757d; font-size: 0.9em;">
-                قم بتسجيل الدخول لحفظ بياناتك ومزامنتها سحابياً.
-            </p>
-            <input type="email" id="email" placeholder="البريد الإلكتروني">
-            <input type="password" id="password" placeholder="كلمة المرور">
-            <button onclick="signIn()">دخول</button>
-            <button onclick="signUp()">إنشاء حساب</button>
-            
-            <hr style="margin: 20px 0;">
-            
-            <button onclick="signInWithGoogle()" class="google-btn" style="width: 100%;">
-                تسجيل الدخول باستخدام Google 🚀
-            </button>
-            
-            <p id="auth-error" style="color: red;"></p>
+        <div class="sidebar-menu-item" onclick="document.getElementById('importFile').click()">
+            📥 استيراد البيانات (JSON)
+        </div>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
+        
+        <div class="sidebar-menu-item" onclick="openAboutModal()">
+            💡 حول التطبيق
         </div>
         
-    </div> 
-        
-    <div id="details-modal" style="
-        display: none; 
-        position: fixed; 
-        z-index: 1000; 
-        left: 0; 
-        top: 0; 
-        width: 100%; 
-        height: 100%; 
-        overflow: auto; 
-        background-color: rgba(0,0,0,0.8);
-        padding-top: 60px;
-    ">
-        <div style="
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 10px;
-            position: relative;
-        ">
-            <span onclick="closeModal()" style="
-                color: #aaa;
-                float: left;
-                font-size: 28px;
-                font-weight: bold;
-                cursor: pointer;
-            ">&times;</span>
-            <h2>تفاصيل المعاملة</h2>
-            <div id="details-content">
-                </div>
-            <div id="image-area" style="text-align: center; margin-top: 20px;">
-                </div>
-            
-            <button id="download-button" style="display: none; margin-top: 15px; width: 100%;" onclick="downloadImage()">
-                حفظ صورة الفاتورة
-            </button>
-            
+        <div class="sidebar-menu-item" onclick="confirmResetData()" style="color: var(--danger);">
+            ⚠️ إعادة تعيين البيانات
         </div>
     </div>
-    <script>
-        // **********************************************
-        // 2. إعدادات Firebase
-        // **********************************************
-        const firebaseConfig = {
-            // 👇👇👇 يجب تغيير هذه القيم لتطابق مشروعك في Firebase Console 👇👇👇
-            apiKey: "AIzaSyBENy9kG69uDwR1-oSJqXYFlEyDHuCgZmc", 
-            authDomain: "masrufati.firebaseapp.com", 
-            projectId: "masrufati", 
-            storageBucket: "masrufati.firebasestorage.app", 
-            messagingSenderId: "848472873404", 
-            appId: "1:848472873404:web:ffd9ada5fe1d0708f133b9" 
-            // 👆👆👆 يجب تغيير هذه القيم لتطابق مشروعك في Firebase Console 👆👆👆
+</div>
+
+<div class="modal" id="aboutModal">
+    <header>
+        <h3>حول ميزانيتك الذكية</h3>
+        <button onclick="document.getElementById('aboutModal').style.display='none'">إغلاق</button>
+    </header>
+    <div class="modal-content">
+        <p>تطبيق ميزانيتك المالية الذكية هو أداة بسيطة للمساعدة في تتبع:</p>
+        <ul>
+            <li>💸 **المصروفات المتغيرة** اليومية.</li>
+            <li>🤝 **الحقوق** المالية المستحقة لك (ديون، بيع آجل).</li>
+            <li>📌 **الالتزامات** المالية المستحقة عليك (فواتير، أقساط، قروض).</li>
+        </ul>
+        <p><strong>ملاحظة:</strong> يتم حفظ جميع البيانات محلياً على جهازك باستخدام تقنية IndexedDB، ولا يتم إرسالها لأي خادم خارجي. يرجى استخدام خاصية التصدير لحفظ نسخة احتياطية.</p>
+        <p style="text-align: center; margin-top: 20px;">الإصدار 1.0.0</p>
+    </div>
+</div>
+
+
+<script>
+// ===================================================
+// 1. إعداد IndexedDB ومتغيرات الحالة
+// ===================================================
+const IDB_NAME = "MySmartBudgetDB";
+const IDB_VERSION = 1;
+const STORE_NAMES = ["exp", "rig", "deb"]; 
+let db = { exp: [], rig: [], deb: [] }; 
+let IDB_connection = null; 
+
+let currentLog = "", editMode = null;
+
+// ===================================================
+// 2. وظائف الأدوات المساعدة والملاحية
+// ===================================================
+
+function formatAmount(input) {
+  let value = input.value.replace(/[^\d.]/g, ''); 
+  const parts = value.split('.');
+  
+  if (parts.length > 2) {
+    value = parts[0] + '.' + parts.slice(1).join('');
+  }
+  
+  const integerPart = parts[0];
+  const decimalPart = parts[1] ? '.' + parts[1] : '';
+  
+  const number = parseFloat(integerPart.replace(/,/g, '')); 
+  let formattedIntegerPart = isNaN(number) ? '' : number.toLocaleString('ar');
+  
+  if (input.value.endsWith('.') && !decimalPart) {
+      formattedIntegerPart += '.';
+  }
+
+  input.value = formattedIntegerPart + decimalPart;
+}
+
+function parseAmount(amount) {
+  // إزالة أي فواصل خاصة بالصيغة (مثل الآلاف) وإعادة القيمة كرقم
+  return parseFloat(String(amount).replace(/[^0-9.]/g, '')) || 0;
+}
+
+function formatCurrency(amount) {
+    const num = parseAmount(amount);
+    const formattedNum = num.toLocaleString('ar', { 
+        minimumFractionDigits: num % 1 === 0 ? 0 : 2,
+        maximumFractionDigits: 2 
+    });
+    return `<span class="currency-symbol">💰</span> ${formattedNum}`;
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (isNaN(date)) return 'تاريخ غير صالح';
+    return date.toLocaleString('ar-EG', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true 
+    });
+}
+
+function toastMsg(m) {
+  const toast = document.getElementById("toast");
+  toast.textContent = m;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2000);
+}
+
+function clearFields(keepExpenseImage = false) {
+  // Expense fields
+  eAmount.value = eDesc.value = eType.value = eDate.value = "";
+  eImg.value = ""; 
+  
+  // Rights fields
+  rName.value = rAmount.value = rDesc.value = rDate.value = rType.value = rStatus.value = "";
+  document.getElementById('rDynamicFields').innerHTML = '';
+  rName.placeholder = rName.getAttribute('data-default-placeholder');
+  document.getElementById('rAmount').oninput = function() { formatAmount(this); };
+  document.getElementById('rAmount').placeholder = "💵 المبلغ المستحق (المبلغ الكلي)";
+
+
+  // Debts fields
+  dName.value = dType.value = dAmount.value = dDesc.value = dDate.value = dStatus.value = "";
+  document.getElementById('dDynamicFields').innerHTML = '';
+  dName.placeholder = dName.getAttribute('data-default-placeholder');
+  
+  // إعادة إظهار حقول الالتزامات العادية
+  document.getElementById('dAmount').style.display = 'block'; 
+  document.getElementById('dStatus').style.display = 'block'; 
+}
+
+// **وظائف تخصيص الحقول الديناميكية**
+function updateNamePlaceholder(type, nameInputId) {
+    const nameInput = document.getElementById(nameInputId);
+    if (!nameInput) return;
+
+    let placeholder;
+    if (nameInputId === 'dName') {
+        switch (type) {
+            case 'إيجار':
+                placeholder = 'اسم المالك/الشركة'; break;
+            case 'قرض':
+            case 'دين شخصي':
+                placeholder = 'اسم الدائن/الجهة'; break;
+            default:
+                placeholder = nameInput.getAttribute('data-default-placeholder');
+        }
+    } else if (nameInputId === 'rName') {
+        switch (type) {
+            case 'دين':
+                placeholder = 'اسم المدين (الذي يدفع لك)'; break;
+            case 'بيع بالآجل':
+                placeholder = 'اسم المشتري'; break;
+            default:
+                placeholder = nameInput.getAttribute('data-default-placeholder');
+        }
+    }
+    nameInput.placeholder = placeholder;
+}
+
+function calculateRightRemaining() {
+    const totalInput = document.getElementById('rAmount');
+    const paidInput = document.getElementById('rPaidAmount');
+    const remainingDisplay = document.getElementById('rRemainingDisplay');
+
+    if (!totalInput || !paidInput || !remainingDisplay) return;
+
+    const total = parseAmount(totalInput.value);
+    const paid = parseAmount(paidInput.value);
+
+    const remaining = total - paid;
+    
+    if (remaining < 0) {
+        remainingDisplay.textContent = `المتبقي: خطأ! المدفوع أكبر من الكلي`;
+        remainingDisplay.style.color = 'red';
+        return;
+    }
+    
+    remainingDisplay.style.color = '#dc3545';
+    remainingDisplay.textContent = `المتبقي: ${formatCurrency(remaining.toFixed(2))}`;
+}
+
+function updateRightFields(type) {
+    const dynamicContainer = document.getElementById('rDynamicFields');
+    dynamicContainer.innerHTML = '';
+    updateNamePlaceholder(type, 'rName');
+    
+    const rStatusSelect = document.getElementById('rStatus'); 
+    
+    // إعادة تعيين Placeholder و oninput لـ rAmount
+    const rAmountInput = document.getElementById('rAmount');
+    rAmountInput.placeholder = "💵 المبلغ المستحق (المبلغ الكلي)";
+    rAmountInput.oninput = function() { formatAmount(this); };
+
+    if (type === 'دين') {
+        rStatusSelect.style.display = 'none'; // سيتم حساب الحالة تلقائياً
+        rAmountInput.placeholder = "💵 المبلغ الكلي للدين";
+        rAmountInput.oninput = function() { formatAmount(this); calculateRightRemaining(); };
+
+        dynamicContainer.innerHTML = `
+            <div class="datetime-container">
+                <input id="rExpectedDate" type="datetime-local">
+                <span class="calendar-icon">🗓️</span>
+            </div>
+            <label for="rExpectedDate" style="display:block; font-size: 0.9em; color: #555; text-align: right; margin-top: -10px;">تاريخ السداد المتوقع</label>
+            
+            <input id="rPaidAmount" type="text" placeholder="المبلغ المدفوع/المحصل حتى الآن" oninput="calculateRightRemaining(); formatAmount(this)" pattern="[0-9]*" inputmode="decimal">
+            <p id="rRemainingDisplay" style="margin: 0; padding: 10px 0; font-size: 0.9em; color: #dc3545; font-weight: bold;">المتبقي: —</p>
+        `;
+        
+    } else if (type === 'بيع بالآجل') {
+        rStatusSelect.style.display = 'block';
+        rAmountInput.placeholder = "💵 المبلغ الكلي للبيع بالآجل";
+
+        dynamicContainer.innerHTML = `
+            <div class="datetime-container">
+                <input id="rExpectedDate" type="datetime-local">
+                <span class="calendar-icon">🗓️</span>
+            </div>
+            <label for="rExpectedDate" style="display:block; font-size: 0.9em; color: #555; text-align: right; margin-top: -10px;">تاريخ السداد المتوقع (إن وجد)</label>
+        `;
+    } else {
+        rStatusSelect.style.display = 'block';
+    }
+}
+
+function calculateInstallmentValue() {
+    const totalInput = document.getElementById('dTotalAmount');
+    const installmentsInput = document.getElementById('dInstallments');
+    const valueDisplay = document.getElementById('dInstallmentValue');
+
+    if (!totalInput || !installmentsInput || !valueDisplay) return;
+
+    const total = parseAmount(totalInput.value);
+    const installments = parseInt(installmentsInput.value) || 0;
+
+    if (total > 0 && installments > 0) {
+        const value = total / installments;
+        valueDisplay.textContent = `قيمة القسط: ${formatCurrency(value.toFixed(2))}`;
+    } else {
+        valueDisplay.textContent = 'قيمة القسط: —';
+    }
+}
+
+function updateDebtFields(type) {
+    const dynamicContainer = document.getElementById('dDynamicFields');
+    dynamicContainer.innerHTML = '';
+    updateNamePlaceholder(type, 'dName');
+    
+    const dAmountInput = document.getElementById('dAmount');
+    const dStatusSelect = document.getElementById('dStatus'); 
+
+    if (type === 'قرض') {
+        dAmountInput.style.display = 'none'; 
+        dStatusSelect.style.display = 'none'; 
+
+        dynamicContainer.innerHTML = `
+            <input id="dTotalAmount" type="text" placeholder="المبلغ الكلي للقرض" oninput="calculateInstallmentValue(); formatAmount(this)" pattern="[0-9]*" inputmode="decimal">
+            <input id="dInstallments" type="number" placeholder="عدد الأقساط الكلي" min="1" oninput="calculateInstallmentValue()">
+            <p id="dInstallmentValue" style="margin: 0; padding: 10px 0; font-size: 0.9em; color: var(--p); font-weight: bold;">قيمة القسط: —</p>
+            <input id="dPaidInstallments" type="number" placeholder="عدد الأقساط المدفوعة حتى الآن" min="0">
+        `;
+        
+    } else if (type === 'دين شخصي') {
+        dAmountInput.style.display = 'none'; 
+        dStatusSelect.style.display = 'none'; 
+
+        dynamicContainer.innerHTML = `
+            <input id="dTotalAmount" type="text" placeholder="المبلغ الكلي للدين" oninput="formatAmount(this)" pattern="[0-9]*" inputmode="decimal">
+            <input id="dPaidInstallments" type="text" placeholder="إجمالي المبلغ المدفوع نقداً حتى الآن" oninput="formatAmount(this)" pattern="[0-9]*" inputmode="decimal">
+        `;
+        
+    } else {
+        // الالتزامات العادية (فواتير، إيجار، قسط/فاتورة أخرى)
+        dAmountInput.style.display = 'block';
+        dStatusSelect.style.display = 'block'; 
+    }
+}
+
+// **التصحيح الحاسم: إضافة معلمة لـ openTab**
+function openTab(id, keepEditMode = false) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  
+  // تأكد من أن هناك حدث لتجنب الخطأ في حالة الاستدعاء البرمجي بدون حدث
+  const button = event && event.currentTarget || document.querySelector(`.tabs button[onclick="openTab('${id}')"]`);
+  if(button) button.classList.add("active");
+  
+  if (!keepEditMode) { // **تمت إضافة هذا الشرط**
+      editMode = null; 
+      clearFields(); 
+  }
+  
+  if (document.getElementById('search')) {
+      document.getElementById('search').value = "";
+  }
+}
+
+function closeDetailAndClearEditMode() {
+  const detailModal = document.getElementById("detailModal");
+  detailModal.style.display = "none";
+  editMode = null; 
+}
+
+
+// **وظائف IndexedDB**
+function initDB() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) {
+        toastMsg("المتصفح لا يدعم IndexedDB.");
+        return reject(new Error("IndexedDB not supported."));
+    }
+
+    const request = indexedDB.open(IDB_NAME, IDB_VERSION);
+
+    request.onerror = (e) => {
+      console.error("IndexedDB error:", e.target.error);
+      reject(e.target.error);
+    };
+
+    request.onsuccess = (e) => {
+      IDB_connection = e.target.result;
+      console.log("IndexedDB opened successfully.");
+      resolve(IDB_connection);
+      loadAllData().then(updateStats);
+    };
+
+    request.onupgradeneeded = (e) => {
+      IDB_connection = e.target.result;
+      STORE_NAMES.forEach(storeName => {
+        if (!IDB_connection.objectStoreNames.contains(storeName)) {
+          IDB_connection.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
+        }
+      });
+      console.log("Database upgrade complete.");
+    };
+  });
+}
+
+initDB();
+
+function saveData(storeName, data) {
+  return new Promise((resolve, reject) => {
+    if (!IDB_connection) return reject(new Error("Database not connected."));
+
+    const transaction = IDB_connection.transaction([storeName], "readwrite");
+    const store = transaction.objectStore(storeName);
+    // put() updates if ID exists, adds if not. Essential for the fix.
+    const request = store.put(data); 
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function deleteFromDB(storeName, id) {
+  return new Promise((resolve, reject) => {
+    if (!IDB_connection) return reject(new Error("Database not connected."));
+
+    const transaction = IDB_connection.transaction([storeName], "readwrite");
+    const store = transaction.objectStore(storeName);
+    const request = store.delete(id); 
+
+    request.onsuccess = () => resolve();
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function loadStoreData(storeName) {
+  return new Promise((resolve) => {
+    if (!IDB_connection) return resolve([]); 
+    
+    const transaction = IDB_connection.transaction([storeName], "readonly");
+    const store = transaction.objectStore(storeName);
+    const request = store.getAll();
+
+    // يتم تحميل البيانات معكوسة لضمان أن الأحدث في الأعلى عند العرض
+    request.onsuccess = (e) => resolve(e.target.result.reverse());
+    request.onerror = () => resolve([]);
+  });
+}
+
+async function loadAllData() {
+    const [expData, rigData, debData] = await Promise.all([
+        loadStoreData('exp'),
+        loadStoreData('rig'),
+        loadStoreData('deb')
+    ]);
+    db.exp = expData;
+    db.rig = rigData;
+    db.deb = debData;
+    const logModal = document.getElementById("logModal");
+    if (logModal.style.display === "flex") renderLog();
+}
+
+// **وظيفة مساعدة جديدة لمعالجة ما بعد الحفظ (لتنظيف الحقول وإعادة فتح السجل)**
+function postSaveCleanup(isEditing, type) {
+    editMode = null; 
+    clearFields(); // تفريغ الحقول
+    updateStats();
+    
+    // إغلاق نافذة التفاصيل إذا كانت مفتوحة
+    document.getElementById("detailModal").style.display = "none";
+    
+    // إذا كانت العملية تعديلاً، قم بإعادة فتح نافذة السجل لعرض القائمة المحدثة
+    if (isEditing) {
+        openLog(type); 
+    }
+}
+
+
+// ===================================================
+// 3. وظائف الإضافة والتعديل والحذف (CRUD)
+// ===================================================
+
+async function addExpense() { 
+  if (!eAmount.value || !eType.value || !eDate.value) return toastMsg("أكمل البيانات");
+  
+  const isEditing = editMode && editMode.type === "exp";
+  const oldData = isEditing ? db.exp[editMode.index] : {}; 
+  
+  // 1. نسخ جميع خصائص السجل القديم أولاً (لضمان وجود ID)
+  const data = isEditing ? { ...oldData } : {}; 
+
+  // 2. تحديث الحقول بقيم النموذج الجديدة
+  data.المبلغ = eAmount.value; 
+  data.الفئة = eType.value; 
+  data.الوصف = eDesc.value; 
+  data.التاريخ = eDate.value; 
+  
+  // 3. تأكيد ID مرة أخرى لضمان عملية put() الصحيحة للتعديل (إجراء وقائي إضافي)
+  if (isEditing) {
+      data.id = oldData.id; 
+  }
+  
+  const done = async () => {
+    try {
+        await saveData('exp', data); 
+        toastMsg(isEditing ? "تم تعديل المصروف" : "تم حفظ المصروف");
+        
+        await loadAllData(); 
+        postSaveCleanup(isEditing, 'exp'); 
+
+    } catch (error) {
+        toastMsg("فشل الحفظ. تحقق من Console.");
+        console.error(error);
+    }
+  };
+
+  if (eImg.files[0]) {
+    const r = new FileReader();
+    r.onload = () => { 
+        data.صورة = r.result; // يتم تحديث الصورة الجديدة أو القديمة
+        done(); 
+    };
+    r.readAsDataURL(eImg.files[0]);
+  } else {
+      done(); 
+  }
+}
+
+async function addRight() {
+  if (!rName.value || !rAmount.value || !rType.value || !rDate.value) return toastMsg("أكمل البيانات");
+  
+  const isEditing = editMode && editMode.type === "rig";
+  const oldData = isEditing ? db.rig[editMode.index] : {};
+  const rExpectedDate = document.getElementById('rExpectedDate');
+  const rPaidAmountInput = document.getElementById('rPaidAmount'); 
+  const totalAmount = parseAmount(rAmount.value);
+
+
+  // 1. نسخ جميع خصائص السجل القديم أولاً (لضمان وجود ID)
+  const data = isEditing ? { ...oldData } : {};
+
+  // 2. تحديث الحقول بقيم النموذج الجديدة
+  data.الاسم = rName.value; 
+  data.النوع = rType.value; 
+  data.المبلغ = rAmount.value; 
+  data.الوصف = rDesc.value; 
+  data.التاريخ = rDate.value; 
+  data.تاريخ_متوقع = rExpectedDate ? rExpectedDate.value : null; 
+  
+  if (data.النوع === 'دين') {
+      const paidAmount = rPaidAmountInput ? parseAmount(rPaidAmountInput.value) : 0;
+      const remaining = totalAmount - paidAmount;
+      
+      if (paidAmount > totalAmount) return toastMsg("المبلغ المدفوع لا يمكن أن يتجاوز المبلغ الكلي للدين.");
+
+      data.المبلغ_المدفوع = paidAmount.toLocaleString('ar'); // تخزين كرقم منسق (بدون رمز العملة)
+      data.المتبقي = remaining.toLocaleString('ar'); // تخزين كرقم منسق (بدون رمز العملة)
+      
+      if (remaining <= 0) {
+          data.الحالة = "مدفوع بالكامل";
+      } else if (paidAmount > 0) {
+          data.الحالة = "مدفوع جزئياً";
+      } else {
+          data.الحالة = "غير مدفوع بعد";
+      }
+      
+      // حذف الحقول القديمة الغير مستخدمة في حال التعديل
+      delete data.الحالة_اليدوية;
+      
+  } else {
+      // الأنواع الأخرى (بيع بالآجل، أخرى)
+      if (!rStatus.value) return toastMsg("يرجى تحديد الحالة.");
+      data.الحالة = rStatus.value;
+      
+      delete data.المبلغ_المدفوع;
+      delete data.المتبقي;
+  }
+  
+  // 3. تأكيد ID مرة أخرى لضمان عملية put() الصحيحة للتعديل (إجراء وقائي إضافي)
+  if (isEditing) {
+      data.id = oldData.id;
+  }
+  
+  try {
+      await saveData('rig', data);
+      toastMsg(isEditing ? "تم تعديل الحق" : "تم حفظ الحق");
+      
+      await loadAllData(); 
+      postSaveCleanup(isEditing, 'rig');
+
+  } catch (error) {
+      toastMsg("فشل الحفظ. تحقق من Console.");
+      console.error(error);
+  }
+}
+
+async function addDebt() {
+  if (!dName.value || !dType.value || !dDate.value) return toastMsg("أكمل البيانات الأساسية");
+  
+  const isMasterLiability = (dType.value === 'قرض' || dType.value === 'دين شخصي');
+  
+  const dTotalAmountInput = document.getElementById('dTotalAmount');
+  const dInstallmentsInput = document.getElementById('dInstallments');
+  const dPaidInstallmentsInput = document.getElementById('dPaidInstallments'); 
+  
+  if (!isMasterLiability && (!dAmount.value || !dStatus.value)) return toastMsg("أكمل بيانات الفاتورة/القسط العادي.");
+  if (isMasterLiability && !dTotalAmountInput.value) return toastMsg("الرجاء إدخال المبلغ الكلي للالتزام.");
+
+  const isEditing = editMode && editMode.type === "deb";
+  const oldData = isEditing ? db.deb[editMode.index] : {};
+
+  // 1. نسخ جميع خصائص السجل القديم أولاً (لضمان وجود ID)
+  const data = isEditing ? { ...oldData } : {};
+
+  // 2. تحديث الحقول بقيم النموذج الجديدة
+  data.الاسم = dName.value;
+  data.النوع = dType.value; 
+  data.الوصف = dDesc.value; 
+  data.التاريخ = dDate.value; 
+  
+  if (isMasterLiability) {
+      const totalAmount = parseAmount(dTotalAmountInput.value);
+      let totalPaidAmount = 0;
+      let remainingAmount = 0;
+
+      if (data.النوع === 'قرض') {
+          const paidInstallmentsCount = parseInt(dPaidInstallmentsInput.value) || 0;
+          const installmentsTotal = parseInt(dInstallmentsInput.value) || 0;
+          
+          if (installmentsTotal <= 0) return toastMsg("عدد الأقساط يجب أن يكون أكبر من صفر.");
+          if (paidInstallmentsCount > installmentsTotal) return toastMsg("عدد الأقساط المدفوعة لا يمكن أن يتجاوز الكلي.");
+
+          const installmentValue = totalAmount / installmentsTotal;
+          totalPaidAmount = paidInstallmentsCount * installmentValue;
+          
+          data.عدد_الاقساط = installmentsTotal;
+          data.قيمة_القسط = formatCurrency(installmentValue.toFixed(2));
+          data.الأقساط_المدفوعة = paidInstallmentsCount;
+          
+      } else if (data.النوع === 'دين شخصي') {
+          totalPaidAmount = parseAmount(dPaidInstallmentsInput.value);
+          
+          if (totalPaidAmount > totalAmount) return toastMsg("إجمالي المدفوع لا يمكن أن يتجاوز المبلغ الكلي للدين.");
+          
+          delete data.عدد_الاقساط;
+          delete data.قيمة_القسط;
+          data.الأقساط_المدفوعة = null;
+      }
+      
+      remainingAmount = totalAmount - totalPaidAmount;
+      
+      data.المبلغ_الكلي_للالتزام = dTotalAmountInput.value;
+      data.إجمالي_المدفوع = formatCurrency(totalPaidAmount); 
+      data.المتبقي_للالتزام = formatCurrency(remainingAmount);
+      
+      data.المبلغ = "—";
+      data.الحالة = "—";
+      
+  } else {
+      data.المبلغ = dAmount.value; 
+      data.الحالة = dStatus.value;
+      
+      delete data.المبلغ_الكلي_للالتزام;
+      delete data.إجمالي_المدفوع;
+      delete data.المتبقي_للالتزام;
+      delete data.عدد_الاقساط;
+      delete data.قيمة_القسط;
+      delete data.الأقساط_المدفوعة;
+  }
+  
+  // 3. تأكيد ID مرة أخرى لضمان عملية put() الصحيحة للتعديل (إجراء وقائي إضافي)
+  if (isEditing) {
+      data.id = oldData.id;
+  }
+  
+  try {
+      await saveData('deb', data);
+      toastMsg(isEditing ? "تم تعديل الالتزام" : "تم حفظ الالتزام");
+      
+      await loadAllData(); 
+      postSaveCleanup(isEditing, 'deb');
+
+  } catch (error) {
+      toastMsg("فشل الحفظ. تحقق من Console.");
+      console.error(error);
+  }
+}
+
+function openLog(t) {
+  const logModal = document.getElementById("logModal");
+  currentLog = t;
+  logModal.style.display = "flex";
+  renderLog();
+}
+
+function closeLog() { 
+    const logModal = document.getElementById("logModal");
+    logModal.style.display = "none"; 
+}
+
+function renderLog() {
+  const logContent = document.getElementById("logContent");
+  const search = document.getElementById("search");
+  const q = (search.value || "").toLowerCase();
+  
+  const filteredData = db[currentLog]
+    .filter(i => JSON.stringify(i).toLowerCase().includes(q));
+
+  logContent.innerHTML = filteredData
+    .map((i) => {
+        let subText = i.الحالة || '';
+        let displayAmount = i.المبلغ;
+        let displayTitle = i.النوع || i.الفئة || i.الاسم || 'معاملة';
+        
+        if (i.المتبقي_للالتزام) {
+             subText = `مدفوع: ${i.إجمالي_المدفوع} / متبقي: ${i.المتبقي_للالتزام}`;
+             displayAmount = i.المبلغ_الكلي_للالتزام;
+        } else if (i.المتبقي) { // New logic for rights (دين)
+             subText = `الحالة: ${i.الحالة} / المتبقي: ${formatCurrency(i.المتبقي)}`;
+             displayAmount = i.المبلغ; // Total amount
+        }
+
+        return `
+            <div class="list-item" onclick='showDetailById(${i.id},"${currentLog}")'>
+                <div style="font-weight: bold; margin-bottom: 5px;">
+                    ${displayTitle} - ${formatCurrency(displayAmount)}
+                </div>
+                <div style="font-size: 0.9em; color: #666; direction: ltr; text-align: right;">
+                    ${subText} | ${formatDateTime(i.التاريخ)}
+                </div>
+            </div>
+        `;
+    })
+    .join("");
+}
+
+function showDetailById(id, type) {
+    const o = db[type].find(item => item.id === id);
+    if (!o) return toastMsg("لم يتم العثور على المعاملة.");
+    
+    const index = db[type].findIndex(item => item.id === id);
+    if (index === -1) return toastMsg("خطأ في العثور على فهرس المعاملة.");
+    
+    editMode = { type, index }; 
+    
+    _renderDetailContent(o, type); 
+}
+
+function _renderDetailContent(o, type) {
+    const detailModal = document.getElementById("detailModal");
+    const detailContent = document.getElementById("detailContent");
+
+    detailModal.style.display = "flex";
+
+    const customMap = {
+        'تاريخ_متوقع': 'تاريخ السداد المتوقع',
+        'المبلغ_الكلي_للالتزام': 'المبلغ الكلي للالتزام (الأصلي)',
+        'إجمالي_المدفوع': 'إجمالي المدفوع حتى الآن (مصروف)',
+        'المتبقي_للالتزام': 'المتبقي من الالتزام',
+        'عدد_الاقساط': 'عدد الأقساط الكلي',
+        'قيمة_القسط': 'قيمة القسط',
+        'الأقساط_المدفوعة': 'عدد الأقساط المدفوعة',
+        'المبلغ': 'المبلغ (قسط/فاتورة/إجمالي)',
+        'الاسم': type === 'rig' ? 'اسم المدين' : type === 'deb' ? 'اسم الدائن/الجهة' : '—',
+        'المبلغ_المدفوع': 'المحصل/المدفوع حتى الآن', // New for Rights
+        'المتبقي': 'المتبقي للتحصيل', // New for Rights
+    };
+
+    detailContent.innerHTML = Object.entries(o).map(([k, v]) => {
+        if (k === "صورة" && v) return `<p><b>صورة:</b></p><img src="${v}">`;
+        if (k === "id") return ""; 
+        
+        const displayKey = customMap[k] || k;
+        
+        if (k === "المبلغ" || k === "المبلغ_الكلي_للالتزام") {
+            if (v === "—" || v === null) return "";
+            return `<p><b>${displayKey}:</b> ${formatCurrency(v)}</p>`;
+        }
+        
+        // الالتزامات الرئيسية (Debts - Master Liabilities)
+        if (k === "المتبقي_للالتزام" || k === "قيمة_القسط" || k === "إجمالي_المدفوع") { 
+             if (v === "—" || v === null) return "";
+             return `<p><b>${displayKey}:</b> ${v}</p>`; // هذه القيم مخزنة مسبقًا مع رمز العملة
+        }
+        
+        // الحقوق التي يتم حسابها (Rights - الدين)
+        if (k === "المبلغ_المدفوع" || k === "المتبقي") { 
+             if (v === "—" || v === null) return "";
+             return `<p><b>${displayKey}:</b> ${formatCurrency(v)}</p>`; // هذه القيم مخزنة كرقم منسق فقط
+        }
+        
+        if (k === "التاريخ" || k === "تاريخ_متوقع") {
+            return `<p><b>${displayKey}:</b> ${formatDateTime(v)}</p>`;
+        }
+        
+        if (v === null || v === undefined || v === "" || v === "—") return "";
+        
+        return `<p><b>${displayKey}:</b> ${v}</p>`;
+    }).filter(p => p !== "").join("") + 
+    `<button class="action" onclick="editTransaction()">✏️ تعديل</button>
+    <button class="secondary" onclick="deleteTransaction()">🗑️ حذف</button>`;
+}
+
+function editTransaction() {
+  if (!editMode) return;
+  const currentData = db[editMode.type][editMode.index];
+
+  // إخفاء نافذتي التفاصيل والسجل عند الانتقال إلى التعديل
+  const detailModal = document.getElementById("detailModal");
+  const logModal = document.getElementById("logModal");
+  detailModal.style.display = "none";
+  logModal.style.display = "none"; 
+  
+  if (editMode.type === "exp") {
+    // التصحيح: تمرير true لمنع openTab من مسح editMode
+    openTab('expenses', true); 
+    eAmount.value = currentData.المبلغ;
+    eType.value = currentData.الفئة;
+    eDesc.value = currentData.الوصف;
+    eDate.value = currentData.التاريخ;
+  }
+  
+  if (editMode.type === "rig") {
+    // التصحيح: تمرير true لمنع openTab من مسح editMode
+    openTab('rights', true); 
+    rName.value = currentData.الاسم;
+    rType.value = currentData.النوع;
+    updateRightFields(rType.value); 
+    rAmount.value = currentData.المبلغ;
+    rDesc.value = currentData.الوصف;
+    rDate.value = currentData.التاريخ;
+    
+    if (currentData.النوع === 'دين') {
+        const rPaidAmountInput = document.getElementById('rPaidAmount');
+        if (rPaidAmountInput && currentData.المبلغ_المدفوع) {
+             // تعيين القيمة إلى حقل الإدخال
+             rPaidAmountInput.value = currentData.المبلغ_المدفوع; 
+             calculateRightRemaining();
+        }
+    } else {
+        rStatus.value = currentData.الحالة;
+    }
+
+    if (currentData.تاريخ_متوقع && document.getElementById('rExpectedDate')) {
+        document.getElementById('rExpectedDate').value = currentData.تاريخ_متوقع;
+    }
+  }
+  
+  if (editMode.type === "deb") {
+    // التصحيح: تمرير true لمنع openTab من مسح editMode
+    openTab('debts', true); 
+    
+    dName.value = currentData.الاسم; 
+    dType.value = currentData.النوع;
+    dDesc.value = currentData.الوصف;
+    dDate.value = currentData.التاريخ;
+
+    updateDebtFields(dType.value); 
+
+    if (currentData.النوع === 'قرض' || currentData.النوع === 'دين شخصي') {
+        if (currentData.المبلغ_الكلي_للالتزام && document.getElementById('dTotalAmount')) {
+            document.getElementById('dTotalAmount').value = currentData.المبلغ_الكلي_للالتزام;
+        }
+        
+        if (currentData.النوع === 'قرض') {
+            if (currentData.عدد_الاقساط && document.getElementById('dInstallments')) {
+                document.getElementById('dInstallments').value = currentData.عدد_الاقساط;
+            }
+            if (currentData.الأقساط_المدفوعة !== null && document.getElementById('dPaidInstallments')) {
+                document.getElementById('dPaidInstallments').value = currentData.الأقساط_المدفوعة;
+            }
+            calculateInstallmentValue();
+
+        } else if (currentData.النوع === 'دين شخصي') {
+            const paidAmountUnformatted = parseAmount(currentData.إجمالي_المدفوع) || 0;
+            if (document.getElementById('dPaidInstallments')) {
+                document.getElementById('dPaidInstallments').value = paidAmountUnformatted.toLocaleString('ar');
+            }
+        }
+    } else {
+        dAmount.value = currentData.المبلغ;
+        dStatus.value = currentData.الحالة;
+    }
+  }
+}
+
+async function deleteTransaction() {
+  if (!editMode) return;
+  if (!confirm("هل أنت متأكد من حذف هذه المعاملة؟")) return;
+  
+  const typeToDelete = editMode.type;
+  const idToDelete = db[typeToDelete][editMode.index].id;
+  
+  try {
+      await deleteFromDB(typeToDelete, idToDelete);
+      editMode = null; 
+      await loadAllData(); 
+      toastMsg("تم الحذف بنجاح");
+      
+      const detailModal = document.getElementById("detailModal");
+      detailModal.style.display = "none";
+      
+      updateStats();
+      
+      openLog(typeToDelete); 
+      
+  } catch (error) {
+      toastMsg("فشل الحذف.");
+      console.error(error);
+  }
+}
+
+// ===================================================
+// 4. وظائف الإحصائيات (Stats) مع المنطق المالي الجديد
+// ===================================================
+
+function updateStats() {
+  let et = 0, ec = 0; 
+  let cats = {}; 
+  
+  let rt = 0, rp = 0, ru = 0; 
+  let dt = 0, dp = 0, du = 0; 
+
+  // 1. حساب المصروفات المتغيرة (Variable Expenses)
+  db.exp.forEach(e => { 
+    let a = parseAmount(e.المبلغ); 
+    et += a; 
+    ec++;
+    // تسجيل الفئة باسمها العادي
+    cats[e.الفئة] = (cats[e.الفئة] || 0) + a;
+  });
+
+  // 2. حساب الالتزامات والنقل التلقائي للمصروفات المدفوعة
+  db.deb.forEach(d => { 
+    const isMasterLiability = (d.النوع === 'قرض' || d.النوع === 'دين شخصي');
+    
+    if (isMasterLiability) {
+        const totalLiability = parseAmount(d.المبلغ_الكلي_للالتزام);
+        const paidAmount = parseAmount(d.إجمالي_المدفوع); 
+        
+        dt += totalLiability; 
+        dp += paidAmount;
+        
+        const remaining = totalLiability - paidAmount;
+        du += remaining;
+        
+        if (paidAmount > 0) {
+            et += paidAmount; 
+            ec++; 
+            // تسجيل الفئة بالبادئة الخاصة "قرض/دين:"
+            const category = `قرض/دين: ${d.الاسم} (${d.النوع})`;
+            cats[category] = (cats[category] || 0) + paidAmount;
+        }
+
+    } else {
+        // الالتزامات العادية (فواتير، أقساط/فواتير أخرى)
+        let amount = parseAmount(d.المبلغ); 
+        dt += amount; 
+        
+        if (d.الحالة === "مدفوع") {
+            dp += amount;
+            
+            et += amount; 
+            ec++;
+            
+            // تسجيل الفئة بالبادئة الخاصة "التزام مدفوع:"
+            const category = `التزام مدفوع: ${d.الاسم} (${d.النوع})`;
+            cats[category] = (cats[category] || 0) + amount;
+        } else {
+            du += amount;
+        }
+    }
+  });
+  
+  // 3. حساب الحقوق
+  db.rig.forEach(r => { 
+    let a = parseAmount(r.المبلغ); 
+    rt += a; 
+    
+    if (r.النوع === 'دين') {
+        // الحقوق من نوع دين
+        const paid = parseAmount(r.المبلغ_المدفوع);
+        rp += paid;
+        ru += a - paid;
+
+    } else {
+        // الحقوق من أنواع أخرى (بيع بالآجل، أخرى)
+        r.الحالة === "مدفوع بالكامل" ? rp += a : ru += a;
+    }
+  });
+
+  // تحديد أعلى فئة مصروفات
+  let topCatName = '—';
+  let maxCatAmount = 0;
+  for (let cat in cats) { 
+    if (cats[cat] > maxCatAmount) {
+      maxCatAmount = cats[cat];
+      topCatName = cat;
+    }
+  }
+  
+  // **التصحيح الجديد:** تبسيط اسم الفئة إذا كانت من الالتزامات
+  if (topCatName !== '—') {
+      if (topCatName.startsWith('قرض/دين:') || topCatName.startsWith('التزام مدفوع:')) {
+          topCatName = 'في قسم الالتزامات'; // تم تغيير الاسم بناء على طلب المستخدم
+      }
+  }
+
+  // تحديث واجهة الإحصائيات
+  document.getElementById("sExpTotal").innerHTML = formatCurrency(et); 
+  document.getElementById("sExpCount").textContent = ec;
+  document.getElementById("sTopCat").textContent = topCatName;
+  // ... (تحديث باقي الإحصائيات)
+
+  document.getElementById("sRigTotal").innerHTML = formatCurrency(rt); 
+  document.getElementById("sRigPaid").innerHTML = formatCurrency(rp); 
+  document.getElementById("sRigUnpaid").innerHTML = formatCurrency(ru);
+  
+  document.getElementById("sDebTotal").innerHTML = formatCurrency(dt); 
+  document.getElementById("sDebPaid").innerHTML = formatCurrency(dp); 
+  document.getElementById("sDebUnpaid").innerHTML = formatCurrency(du);
+}
+
+// ===================================================
+// 5. وظائف القائمة الجانبية (Sidebar Functions)
+// ===================================================
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('appSidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+}
+
+function openAboutModal() {
+    document.getElementById('aboutModal').style.display = 'flex';
+    toggleSidebar();
+}
+
+// **تصدير البيانات (Export)**
+function exportData() {
+    toggleSidebar();
+    
+    if (!IDB_connection) return toastMsg("لا يمكن الاتصال بقاعدة البيانات.");
+
+    const transaction = IDB_connection.transaction(STORE_NAMES, "readonly");
+    const dataToExport = {};
+    let storesProcessed = 0;
+    
+    STORE_NAMES.forEach(storeName => {
+        const store = transaction.objectStore(storeName);
+        const request = store.getAll();
+
+        request.onsuccess = (event) => {
+            dataToExport[storeName] = event.target.result;
+            storesProcessed++;
+            
+            if (storesProcessed === STORE_NAMES.length) {
+                // جميع المتاجر جاهزة للتصدير
+                const json = JSON.stringify(dataToExport, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `smart_budget_backup_${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toastMsg("تم تصدير البيانات بنجاح!");
+            }
         };
 
-        // تهيئة Firebase
-        if (typeof firebase !== 'undefined') {
-             firebase.initializeApp(firebaseConfig);
-        }
-       
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const storage = firebase.storage(); 
+        request.onerror = () => {
+             toastMsg(`فشل تصدير متجر ${storeName}.`);
+             storesProcessed++;
+        };
+    });
+}
 
-        let userId = null;
-        const authError = document.getElementById('auth-error');
-        let currentCurrencySymbol = 'SAR';
-        let currentImageUrlToDownload = null; 
+// **استيراد البيانات (Import)**
+async function importData(event) {
+    toggleSidebar();
+    const file = event.target.files[0];
+    if (!file) return;
 
-        // تعريف مفاتيح التخزين المحلي
-        const EXPENSE_KEY = 'local_expenses';
-        const DUE_KEY = 'local_debts_due';
-        const OWED_KEY = 'local_debts_owed';
+    if (!confirm("هل أنت متأكد من استيراد هذه البيانات؟ سيؤدي ذلك إلى استبدال البيانات الحالية بشكل كامل.")) {
+        event.target.value = null; // تفريغ حقل الملف
+        return;
+    }
 
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (!IDB_connection) return toastMsg("لا يمكن الاتصال بقاعدة البيانات.");
 
-        // **********************************************
-        // 3. دوال التخزين المحلي والعملة
-        // **********************************************
-
-        function getLocalData(key) {
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : [];
-        }
-
-        function saveLocalData(key, data) {
-            localStorage.setItem(key, JSON.stringify(data));
-        }
-
-        function updateCurrencySymbol() {
-            const selectElement = document.getElementById('currency-select');
-            currentCurrencySymbol = selectElement.value;
-            if (userId) {
-                loadExpenses(); loadDebtsDue(); loadDebtsOwed();
-            } else {
-                loadLocalData();
-            }
-        }
-
-        function formatAmount(amount) {
-            return `${amount.toLocaleString()} ${currentCurrencySymbol}`;
-        }
-        
-        // **********************************************
-        // 4. دوال المصادقة والمزامنة
-        // **********************************************
-        
-        async function syncLocalToFirebase() {
-            if (!userId) return;
-
-            const localExpense = getLocalData(EXPENSE_KEY);
-            const localDue = getLocalData(DUE_KEY);
-            const localOwed = getLocalData(OWED_KEY);
+            const clearStore = (storeName) => new Promise((resolve, reject) => {
+                const transaction = IDB_connection.transaction([storeName], "readwrite");
+                const store = transaction.objectStore(storeName);
+                const request = store.clear();
+                request.onsuccess = () => resolve();
+                request.onerror = (e) => reject(e.target.error);
+            });
             
-            if (localExpense.length + localDue.length + localOwed.length === 0) {
-                console.log("لا توجد بيانات محلية للمزامنة.");
-                return;
-            }
-
-            const confirmSync = confirm(`تم العثور على ${localExpense.length} مصروف محلي و ${localDue.length + localOwed.length} دين. هل تريد مزامنتها الآن مع حسابك على Firebase؟ (سيتم حذفها محلياً بعد النجاح)`);
-            if (!confirmSync) return;
-            
-            const batch = db.batch();
-
-            localExpense.forEach(data => {
-                const newDocRef = db.collection("expenses").doc();
-                delete data.timestamp; 
-                delete data.id; 
-                batch.set(newDocRef, {...data, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
-            });
-
-            localDue.forEach(data => {
-                const newDocRef = db.collection("debts_due").doc();
-                delete data.timestamp;
-                delete data.id;
-                batch.set(newDocRef, {...data, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
-            });
-
-            localOwed.forEach(data => {
-                const newDocRef = db.collection("debts_owed").doc();
-                delete data.timestamp;
-                delete data.id;
-                batch.set(newDocRef, {...data, userId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
-            });
-
-            try {
-                authError.textContent = 'جاري المزامنة... يرجى الانتظار.';
-                await batch.commit();
-                alert("تمت مزامنة البيانات المحلية بنجاح وحفظها سحابياً.");
+            const addDataToStore = (storeName, data) => new Promise((resolve, reject) => {
+                const transaction = IDB_connection.transaction([storeName], "readwrite");
+                const store = transaction.objectStore(storeName);
                 
-                localStorage.removeItem(EXPENSE_KEY);
-                localStorage.removeItem(DUE_KEY);
-                localStorage.removeItem(OWED_KEY);
+                let successCount = 0;
+                let errorCount = 0;
                 
-                authError.textContent = 'تمت المزامنة بنجاح.';
-                loadExpenses(); 
-            } catch (error) {
-                console.error("خطأ في المزامنة: ", error);
-                authError.textContent = `خطأ في المزامنة. تأكد من قواعد Firestore: ${error.message}`;
+                data.forEach(item => {
+                    // إزالة الـ ID لضمان تعيين ID جديد في قاعدة البيانات (لضمان Autoincrement يعمل بشكل صحيح)
+                    delete item.id; 
+                    const request = store.add(item);
+                    request.onsuccess = () => successCount++;
+                    request.onerror = () => errorCount++;
+                });
+
+                transaction.oncomplete = () => resolve({success: successCount, error: errorCount});
+                transaction.onerror = (e) => reject(e.target.error);
+            });
+
+
+            for (const storeName of STORE_NAMES) {
+                await clearStore(storeName); 
             }
-        }
-        
-        function signUp() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            authError.textContent = '';
-            if (password.length < 6) {
-                authError.textContent = 'كلمة المرور يجب أن تكون 6 أحرف أو أكثر.';
-                return;
+
+            for (const storeName of STORE_NAMES) {
+                if (importedData[storeName] && Array.isArray(importedData[storeName])) {
+                    await addDataToStore(storeName, importedData[storeName]);
+                }
             }
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(() => { alert("تم إنشاء الحساب بنجاح! يتم الآن تسجيل دخولك ومزامنة البيانات."); })
-                .catch((error) => { authError.textContent = `خطأ في التسجيل: ${error.message}`; });
+
+            await loadAllData(); 
+            updateStats();
+            toastMsg("تم استيراد البيانات وتحديثها بنجاح!");
+
+        } catch (error) {
+            toastMsg("فشل الاستيراد. تأكد من أن الملف بصيغة JSON صحيحة.");
+            console.error("Import Error:", error);
+        } finally {
+            event.target.value = null; // تفريغ حقل الملف بعد العملية
         }
+    };
+    reader.readAsText(file);
+}
 
-        function signIn() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            authError.textContent = '';
-            auth.signInWithEmailAndPassword(email, password)
-                .catch((error) => { authError.textContent = `خطأ في الدخول: ${error.message}`; });
-        }
-        
-        function signInWithGoogle() {
-            authError.textContent = '';
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .catch((error) => { authError.textContent = `خطأ في الدخول بـ Google: ${error.message}`; });
-        }
+// **إعادة تعيين البيانات (Reset)**
+function confirmResetData() {
+    toggleSidebar();
+    if (confirm("تحذير: هل أنت متأكد أنك تريد حذف جميع البيانات المخزنة؟ هذا الإجراء لا يمكن التراجع عنه.")) {
+        resetAllData();
+    }
+}
 
+function resetAllData() {
+     if (!IDB_connection) return toastMsg("لا يمكن الاتصال بقاعدة البيانات.");
 
-        // دالة مراقبة حالة المصادقة
-        auth.onAuthStateChanged((user) => {
-            const statusDisplay = document.getElementById('user-status-display');
-            
-            if (user) {
-                userId = user.uid;
-                statusDisplay.textContent = user.email;
-                document.getElementById('auth-area').style.display = 'none';
+    const transaction = IDB_connection.transaction(STORE_NAMES, "readwrite");
+    let storesCleared = 0;
+    
+    STORE_NAMES.forEach(storeName => {
+        const store = transaction.objectStore(storeName);
+        const request = store.clear();
 
-                syncLocalToFirebase(); 
-
-                loadExpenses();
-                loadDebtsDue();
-                loadDebtsOwed();
-
-            } else {
-                userId = null;
-                statusDisplay.textContent = 'غير مسجل (حفظ محلي)';
-                document.getElementById('auth-area').style.display = 'block';
-
-                loadLocalData();
+        request.onsuccess = () => {
+            storesCleared++;
+            if (storesCleared === STORE_NAMES.length) {
+                db.exp = db.rig = db.deb = []; // مسح البيانات في الذاكرة
+                updateStats(); // تحديث الإحصائيات إلى صفر
+                toastMsg("تم حذف جميع البيانات بنجاح!");
             }
-        });
+        };
 
-        // **********************************************
-        // 5. دوال الإضافة
-        // **********************************************
-        
-        async function uploadBillImage(file) {
-            if (!userId) {
-                alert("يجب تسجيل الدخول لرفع الصور سحابياً.");
-                return null;
-            }
-            
-            const filePath = `bills/${userId}/${Date.now()}_${file.name}`;
-            const storageRef = storage.ref(filePath);
-            
-            try {
-                document.getElementById('auth-error').textContent = 'جاري رفع الصورة...';
-                const snapshot = await storageRef.put(file);
-                const downloadURL = await snapshot.ref.getDownloadURL();
-                document.getElementById('auth-error').textContent = ''; 
-                return downloadURL;
-            } catch (error) {
-                console.error("خطأ في رفع الصورة: ", error);
-                document.getElementById('auth-error').textContent = `خطأ في رفع الصورة: ${error.message}`;
-                return null;
-            }
-        }
+        request.onerror = () => toastMsg("فشل في حذف بعض البيانات.");
+    });
+}
 
+</script>
 
-        async function addExpense() { 
-            const amount = parseFloat(document.getElementById('expense-amount').value);
-            const category = document.getElementById('expense-category').value;
-            const description = document.getElementById('expense-description').value || 'لا يوجد وصف';
-            const imageFile = document.getElementById('bill-image').files[0];
-            let imageUrl = null;
-            
-            if (isNaN(am
+</body>
+</html>
